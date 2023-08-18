@@ -213,11 +213,6 @@ y_train = dtrain[:y]
 y_eval = deval[:y]
 y_test = dtest[:y]
 
-# p_eval = m(x_eval);
-# eval_df = DataFrame(p = p_eval, y = y_eval, q = q_eval)
-# eval_df_agg = combine(groupby(eval_df, "q"), ["p", "y"] => ndcg => "ndcg")
-# ndcg_eval = mean(eval_df_agg.ndcg)
-
 p_test = m_logloss(x_test);
 test_df = DataFrame(p=p_test, y=y_test, q=q_test)
 test_df_agg = combine(groupby(test_df, "q"), ["p", "y"] => ndcg => "ndcg")
@@ -241,29 +236,15 @@ df_test = DataFrame(x_test, :auto)
 df_test.y = dtest[:y]
 df_test.q = dtest[:q]
 
-function rank_target_norm(y::AbstractVector)
-    out = similar(y)
-    if minimum(y) == maximum(y)
-        # out .= 0.75
-        out .= 0.75
-    else
-        # out .= (y .- minimum(y)) ./ (maximum(y) - minimum(y))
-        out .= 0.5 .* (y .- minimum(y)) ./ (maximum(y) - minimum(y)) .+ 0.5
+rank_target_norm(y::AbstractVector) = (y .- minimum(y)) ./ (maximum(y) - minimum(y))
 
-    end
-    return out
-end
-
-df_train = transform!(
-    groupby(df_train, "q"),
+df_train = transform!(df_train,
     "y" => rank_target_norm => "y")
 
-df_eval = transform!(
-    groupby(df_eval, "q"),
+df_eval = transform!(df_eval,
     "y" => rank_target_norm => "y")
 
-df_test = transform!(
-    groupby(df_test, "q"),
+df_test = transform!(df_test,
     "y" => rank_target_norm => "y")
 
 minimum(df_eval.y)
@@ -272,7 +253,7 @@ maximum(df_eval.y)
 config = EvoTreeRegressor(
     nrounds=6000,
     loss=:logloss,
-    eta=0.005,
+    eta=0.01,
     nbins=64,
     max_depth=11,
     rowsample=0.9,
