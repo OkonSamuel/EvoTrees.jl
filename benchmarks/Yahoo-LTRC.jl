@@ -155,7 +155,7 @@ config = EvoTreeRegressor(
     x_eval=x_eval,
     y_eval=y_eval,
     early_stopping_rounds=200,
-    print_every_n=50,
+    print_every_n=100,
     metric=:mse,
     return_logger=true
 );
@@ -182,14 +182,14 @@ ndcg_test = mean(test_df_agg.ndcg)
 # logistic regression
 #####################################
 
-y_train = (dtrain[:y] .+ 1) ./ 6
-y_eval = (deval[:y] .+ 1) ./ 6
-y_test = (dtest[:y] .+ 1) ./ 6
+y_train = dtrain[:y] ./ 4
+y_eval = deval[:y] ./ 4
+y_test = dtest[:y] ./ 4
 
 config = EvoTreeRegressor(
     nrounds=6000,
     loss=:logloss,
-    eta=0.02,
+    eta=0.01,
     nbins=64,
     max_depth=11,
     rowsample=0.9,
