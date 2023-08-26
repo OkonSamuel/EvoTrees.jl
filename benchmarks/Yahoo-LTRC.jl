@@ -121,6 +121,10 @@ x_train = dtrain[:x][:, .!drop_cols]
 x_eval = deval[:x][:, .!drop_cols]
 x_test = dtest[:x][:, .!drop_cols]
 
+# x_train[x_train.==0] .= 0.5
+# x_eval[x_eval.==0] .= 0.5
+# x_test[x_test.==0] .= 0.5
+
 q_train = dtrain[:q]
 q_eval = deval[:q]
 q_test = dtest[:q]
@@ -160,7 +164,9 @@ p_test = m_mse(x_test);
 test_df = DataFrame(p=p_test, y=y_test, q=q_test)
 test_df_agg = combine(groupby(test_df, "q"), ["p", "y"] => ndcg => "ndcg")
 ndcg_test = mean(test_df_agg.ndcg)
-@info "ndcg_test MSE" ndcg_test
+mse_test = mean((p_test .- y_test) .^ 2)
+@info "MSE - test data" mse_test
+@info "NDCG - test data" ndcg_test
 
 #####################################
 # logistic regression
