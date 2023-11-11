@@ -81,19 +81,23 @@ Predictions from an EvoTree model - sums the predictions from all trees composin
 Use `ntree_limit=N` to only predict with the first `N` trees.
 """
 function predict(
-    m::EvoTree{L,K},
+    m::EvoTree,
     data,
     ::Type{<:Device}=CPU;
-    ntree_limit=length(m.trees)) where {L,K}
+    ntree_limit=length(m.params.trees))
 
     Tables.istable(data) ? data = Tables.columntable(data) : nothing
-    ntrees = length(m.trees)
+    trees = m.params.trees
+    info = m.params.info
+    L = m.params.loss_type
+    K = m.params.outsize
+    ntrees = length(trees)
     ntree_limit > ntrees && error("ntree_limit is larger than number of trees $ntrees.")
-    x_bin = binarize(data; fnames=m.info[:fnames], edges=m.info[:edges])
+    x_bin = binarize(data; fnames=info[:fnames], edges=info[:edges])
     nobs = size(x_bin, 1)
     pred = zeros(Float32, K, nobs)
     for i = 1:ntree_limit
-        predict!(pred, m.trees[i], x_bin, m.info[:feattypes])
+        predict!(pred, trees[i], x_bin, info[:feattypes])
     end
     if L == LogLoss
         pred .= sigmoid.(pred)
@@ -118,46 +122,47 @@ function softmax!(p::AbstractMatrix)
     return nothing
 end
 
-function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, params::EvoTypes{L}, ∇, is) where {L<:GradientRegression,T}
-    ϵ = eps(T)
-    p[1, n] = -params.eta * ∑[1] / max(ϵ, (∑[2] + params.lambda * ∑[3] + params.L2))
+function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:GradientRegression}, config)
+    ϵ = eps(eltype(p))
+    p[1, n] = -config.eta * ∑[1] / max(ϵ, (∑[2] + config.lambda * ∑[3] + config.L2))
 end
-function pred_scalar(∑::AbstractVector{T}, params::EvoTypes{L}) where {L<:GradientRegression,T}
-    ϵ = eps(T)
-    -params.eta * ∑[1] / max(ϵ, (∑[2] + params.lambda * ∑[3] + params.L2))
+function pred_scalar(∑::AbstractVector, ::Type{<:GradientRegression}, config)
+    ϵ = eps(eltype(∑))
+    -config.eta * ∑[1] / max(ϵ, (∑[2] + config.lambda * ∑[3] + config.L2))
 end
 
+
 # prediction in Leaf - MLE2P
-function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, params::EvoTypes{L}, ∇, is) where {L<:MLE2P,T}
-    ϵ = eps(T)
-    p[1, n] = -params.eta * ∑[1] / max(ϵ, (∑[3] + params.lambda * ∑[5] + params.L2))
-    p[2, n] = -params.eta * ∑[2] / max(ϵ, (∑[4] + params.lambda * ∑[5] + params.L2))
+function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:GradientRegression}, config)
+    ϵ = eps(eltype(p))
+    p[1, n] = -config.eta * ∑[1] / max(ϵ, (∑[3] + config.lambda * ∑[5] + config.L2))
+    p[2, n] = -config.eta * ∑[2] / max(ϵ, (∑[4] + config.lambda * ∑[5] + config.L2))
 end
-function pred_scalar(∑::AbstractVector{T}, params::EvoTypes{L}) where {L<:MLE2P,T}
-    ϵ = eps(T)
-    -params.eta * ∑[1] / max(ϵ, (∑[3] + params.lambda * ∑[5] + params.L2))
+function pred_scalar(∑::AbstractVector, ::Type{<:GradientRegression}, config)
+    ϵ = eps(eltype(∑))
+    -config.eta * ∑[1] / max(ϵ, (∑[3] + config.lambda * ∑[5] + config.L2))
 end
 
 # prediction in Leaf - MultiClassRegression
-function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, params::EvoTypes{L}, ∇, is) where {L<:MLogLoss,T}
-    ϵ = eps(T)
+function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:GradientRegression}, config)
+    ϵ = eps(eltype(p))
     K = size(p, 1)
     @inbounds for k = axes(p, 1)
-        p[k, n] = -params.eta * ∑[k] / max(ϵ, (∑[k+K] + params.lambda * ∑[end] + params.L2))
+        p[k, n] = -config.eta * ∑[k] / max(ϵ, (∑[k+K] + config.lambda * ∑[end] + config.L2))
     end
 end
 
 # prediction in Leaf - Quantile
-function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, params::EvoTypes{L}, ∇, is) where {L<:Quantile,T}
-    p[1, n] = params.eta * quantile(∇[2, is], params.alpha) / (1 + params.lambda + params.L2)
-end
+# function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, ::Type{<:GradientRegression}, config)
+#     p[1, n] = config.eta * quantile(∇[2, is], config.alpha) / (1 + config.lambda + config.L2)
+# end
 
 # prediction in Leaf - L1
-function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, params::EvoTypes{L}, ∇, is) where {L<:L1,T}
-    ϵ = eps(T)
-    p[1, n] = params.eta * ∑[1] / max(ϵ, (∑[3] * (1 + params.lambda + params.L2)))
+function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:GradientRegression}, config)
+    ϵ = eps(eltype(p))
+    p[1, n] = config.eta * ∑[1] / max(ϵ, (∑[3] * (1 + config.lambda + config.L2)))
 end
-function pred_scalar(∑::AbstractVector, params::EvoTypes{L1})
-    ϵ = eps(T)
-    params.eta * ∑[1] / max(ϵ, (∑[3] * (1 + params.lambda + params.L2)))
+function pred_scalar(∑::AbstractVector, ::Type{<:GradientRegression}, config)
+    ϵ = eps(eltype(∑))
+    config.eta * ∑[1] / max(ϵ, (∑[3] * (1 + config.lambda + config.L2)))
 end

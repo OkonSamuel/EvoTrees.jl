@@ -151,20 +151,23 @@ end
 
 # prediction for EvoTree model
 function predict(
-    m::EvoTree{L,K},
+    m::EvoTree,
     data,
     ::Type{<:EvoTrees.GPU};
-    ntree_limit=length(m.trees)) where {L,K}
+    ntree_limit=length(m.params.trees))
 
     Tables.istable(data) ? data = Tables.columntable(data) : nothing
-    ntrees = length(m.trees)
+    trees = m.params.trees
+    info = m.params.info
+    L = m.params.loss_type
+    K = m.params.outsize
+    ntrees = length(trees)
     ntree_limit > ntrees && error("ntree_limit is larger than number of trees $ntrees.")
-    x_bin = CuArray(EvoTrees.binarize(data; fnames=m.info[:fnames], edges=m.info[:edges]))
+    x_bin = CuArray(binarize(data; fnames=info[:fnames], edges=info[:edges]))
     nobs = size(x_bin, 1)
     pred = CUDA.zeros(K, nobs)
-    feattypes = CuArray(m.info[:feattypes])
     for i = 1:ntree_limit
-        EvoTrees.predict!(pred, m.trees[i], x_bin, feattypes)
+        predict!(pred, trees[i], x_bin, info[:feattypes])
     end
     if L == EvoTrees.LogLoss
         pred .= EvoTrees.sigmoid.(pred)

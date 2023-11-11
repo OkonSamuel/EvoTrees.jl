@@ -1,19 +1,19 @@
 """
-    get_edges(X::AbstractMatrix{T}; fnames, nbins, rng=Random.TaskLocalRNG()) where {T}
-    get_edges(df; fnames, nbins, rng=Random.TaskLocalRNG())
+    get_edges(X::AbstractMatrix{T}; fnames, max_bins, rng=Random.TaskLocalRNG()) where {T}
+    get_edges(df; fnames, max_bins, rng=Random.TaskLocalRNG())
 
 Get the histogram breaking points of the feature data.
 """
-function get_edges(X::AbstractMatrix{T}; fnames, nbins, rng=Random.MersenneTwister()) where {T}
+function get_edges(X::AbstractMatrix{T}; fnames, max_bins, rng=Random.MersenneTwister()) where {T}
     @assert T <: Real
-    nobs = min(size(X, 1), 1000 * nbins)
+    nobs = min(size(X, 1), 1000 * max_bins)
     idx = sample(rng, 1:size(X, 1), nobs, replace=false, ordered=true)
     nfeats = size(X, 2)
     edges = Vector{Vector{T}}(undef, nfeats)
     featbins = Vector{UInt8}(undef, nfeats)
     feattypes = Vector{Bool}(undef, nfeats)
     @threads for j in 1:size(X, 2)
-        edges[j] = quantile(view(X, idx, j), (1:nbins-1) / nbins)
+        edges[j] = quantile(view(X, idx, j), (1:max_bins-1) / max_bins)
         if length(edges[j]) == 1
             edges[j] = [minimum(view(X, idx, j))]
         end
@@ -23,9 +23,9 @@ function get_edges(X::AbstractMatrix{T}; fnames, nbins, rng=Random.MersenneTwist
     return edges, featbins, feattypes
 end
 
-function get_edges(df; fnames, nbins, rng=Random.MersenneTwister())
+function get_edges(df; fnames, max_bins, rng=Random.MersenneTwister())
     _nobs = Tables.DataAPI.nrow(df)
-    nobs = min(_nobs, 1000 * nbins)
+    nobs = min(_nobs, 1000 * max_bins)
     idx = sample(rng, 1:_nobs, nobs, replace=false, ordered=true)
     edges = Vector{Any}([Vector{eltype(Tables.getcolumn(df, col))}() for col in fnames])
     nfeats = length(fnames)
@@ -43,7 +43,7 @@ function get_edges(df; fnames, nbins, rng=Random.MersenneTwister())
             feattypes[j] = isordered(col) ? true : false
             @assert featbins[j] <= 255 "Max categorical levels currently limited to 255, $(fnames[j]) has $(featbins[j])."
         elseif eltype(col) <: Real
-            edges[j] = unique(quantile(col, (1:nbins-1) / nbins))
+            edges[j] = unique(quantile(col, (1:max_bins-1) / max_bins))
             featbins[j] = length(edges[j]) + 1
             feattypes[j] = true
         else
@@ -302,10 +302,11 @@ Generic fallback
 function update_gains!(
     node::TrainNode,
     js,
-    params::EvoTypes{L},
+    config::Config,
     feattypes::Vector{Bool},
     monotone_constraints,
-) where {L}
+    L::Type{<:LossType}
+)
 
     h = node.h
     hL = node.hL
@@ -323,18 +324,18 @@ function update_gains!(
         end
         monotone_constraint = monotone_constraints[j]
         @inbounds for bin in eachindex(gains[j])
-            if hL[j][end, bin] > params.min_weight && hR[j][end, bin] > params.min_weight
+            if hL[j][end, bin] > config.min_weight && hR[j][end, bin] > config.min_weight
                 if monotone_constraint != 0
-                    predL = pred_scalar(view(hL[j], :, bin), params)
-                    predR = pred_scalar(view(hR[j], :, bin), params)
+                    predL = pred_scalar(view(hL[j], :, bin), L, config)
+                    predR = pred_scalar(view(hR[j], :, bin), L, config)
                 end
                 if (monotone_constraint == 0) ||
                    (monotone_constraint == -1 && predL > predR) ||
                    (monotone_constraint == 1 && predL < predR)
 
                     gains[j][bin] =
-                        get_gain(params, view(hL[j], :, bin)) +
-                        get_gain(params, view(hR[j], :, bin))
+                        get_gain(view(hL[j], :, bin), L, config) +
+                        get_gain(view(hR[j], :, bin), L, config)
                 end
             end
         end

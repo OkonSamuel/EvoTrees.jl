@@ -1,55 +1,60 @@
-function init_core(params::EvoTypes{L}, ::Type{CPU}, data, fnames, y_train, w, offset) where {L}
+function init_core!(m::EvoTree, ::Type{CPU}, data, fnames, y, w, offset)
+
+    config = m.config
+    params = m.params
+    cache = m.cache
+    L = config.loss_type
 
     # binarize data into quantiles
-    edges, featbins, feattypes = get_edges(data; fnames, nbins=params.nbins, rng=params.rng)
+    edges, featbins, feattypes = get_edges(data; fnames, max_bins=config.max_bins, rng=config.rng)
     x_bin = binarize(data; fnames, edges)
     nobs, nfeats = size(x_bin)
     T = Float32
 
     target_levels = nothing
     if L == Logistic
-        @assert eltype(y_train) <: Real && minimum(y_train) >= 0 && maximum(y_train) <= 1
+        @assert eltype(y) <: Real && minimum(y) >= 0 && maximum(y) <= 1
         K = 1
-        y = T.(y_train)
+        y = T.(y)
         μ = [logit(mean(y))]
         !isnothing(offset) && (offset .= logit.(offset))
     elseif L in [Poisson, Gamma, Tweedie]
-        @assert eltype(y_train) <: Real
+        @assert eltype(y) <: Real
         K = 1
-        y = T.(y_train)
+        y = T.(y)
         μ = fill(log(mean(y)), 1)
         !isnothing(offset) && (offset .= log.(offset))
     elseif L == MLogLoss
-        if eltype(y_train) <: CategoricalValue
-            target_levels = CategoricalArrays.levels(y_train)
-            y = UInt32.(CategoricalArrays.levelcode.(y_train))
-        elseif eltype(y_train) <: Integer || eltype(y_train) <: Bool || eltype(y_train) <: String || eltype(y_train) <: Char
-            target_levels = sort(unique(y_train))
-            yc = CategoricalVector(y_train, levels=target_levels)
+        if eltype(y) <: CategoricalValue
+            target_levels = CategoricalArrays.levels(y)
+            y = UInt32.(CategoricalArrays.levelcode.(y))
+        elseif eltype(y) <: Integer || eltype(y) <: Bool || eltype(y) <: String || eltype(y) <: Char
+            target_levels = sort(unique(y))
+            yc = CategoricalVector(y, levels=target_levels)
             y = UInt32.(CategoricalArrays.levelcode.(yc))
         else
-            @error "Invalid target eltype: $(eltype(y_train))"
+            @error "Invalid target eltype: $(eltype(y))"
         end
         K = length(target_levels)
         μ = T.(log.(proportions(y, UInt32(1):UInt32(K))))
         μ .-= maximum(μ)
         !isnothing(offset) && (offset .= log.(offset))
     elseif L == GaussianMLE
-        @assert eltype(y_train) <: Real
+        @assert eltype(y) <: Real
         K = 2
-        y = T.(y_train)
+        y = T.(y)
         μ = [mean(y), log(std(y))]
         !isnothing(offset) && (offset[:, 2] .= log.(offset[:, 2]))
     elseif L == LogisticMLE
-        @assert eltype(y_train) <: Real
+        @assert eltype(y) <: Real
         K = 2
-        y = T.(y_train)
+        y = T.(y)
         μ = [mean(y), log(std(y) * sqrt(3) / π)]
         !isnothing(offset) && (offset[:, 2] .= log.(offset[:, 2]))
     else
-        @assert eltype(y_train) <: Real
+        @assert eltype(y) <: Real
         K = 1
-        y = T.(y_train)
+        y = T.(y)
         μ = [mean(y)]
     end
     μ = T.(μ)
@@ -59,9 +64,9 @@ function init_core(params::EvoTypes{L}, ::Type{CPU}, data, fnames, y_train, w, o
     @assert (length(y) == length(w) && minimum(w) > 0)
 
     # initialize preds
-    pred = zeros(T, K, nobs)
-    pred .= μ
-    !isnothing(offset) && (pred .+= offset')
+    p = zeros(T, K, nobs)
+    p .= μ
+    !isnothing(offset) && (p .+= offset')
 
     # initialize gradients
     ∇ = zeros(T, 2 * K + 1, nobs)
@@ -72,61 +77,56 @@ function init_core(params::EvoTypes{L}, ::Type{CPU}, data, fnames, y_train, w, o
     is_out = zeros(UInt32, nobs)
     mask = zeros(UInt8, nobs)
     js_ = UInt32.(collect(1:nfeats))
-    js = zeros(UInt32, ceil(Int, params.colsample * nfeats))
+    js = zeros(UInt32, ceil(Int, config.colsample * nfeats))
     out = zeros(UInt32, nobs)
     left = zeros(UInt32, nobs)
     right = zeros(UInt32, nobs)
 
     # assign monotone contraints in constraints vector
     monotone_constraints = zeros(Int32, nfeats)
-    hasproperty(params, :monotone_constraints) && for (k, v) in params.monotone_constraints
+    hasproperty(config, :monotone_constraints) && for (k, v) in config.monotone_constraints
         monotone_constraints[k] = v
     end
 
     # model info
-    info = Dict(
-        :fnames => fnames,
-        :target_levels => target_levels,
-        :edges => edges,
-        :featbins => featbins,
-        :feattypes => feattypes,
-    )
+    push!(params.info, :fnames => fnames)
+    push!(params.info, :target_levels => target_levels)
+    push!(params.info, :edges => edges)
+    push!(params.info, :featbins => featbins)
+    push!(params.info, :feattypes => feattypes)
 
     # initialize model
-    nodes = [TrainNode(featbins, K, view(is_in, 1:0)) for n = 1:2^params.max_depth-1]
-    bias = [Tree{L,K}(μ)]
-    m = EvoTree{L,K}(bias, info)
+    nodes = [TrainNode(featbins, K, view(is_in, 1:0)) for n = 1:2^config.max_depth-1]
+    tree_bias = Tree{L,K}(μ)
+    push!(m.params.trees, tree_bias)
 
     # build cache
-    cache = (
-        info=Dict(:nrounds => 0),
-        x_bin=x_bin,
-        y=y,
-        w=w,
-        pred=pred,
-        K=K,
-        nodes=nodes,
-        is_in=is_in,
-        is_out=is_out,
-        mask=mask,
-        js_=js_,
-        js=js,
-        out=out,
-        left=left,
-        right=right,
-        ∇=∇,
-        edges=edges,
-        fnames=fnames,
-        featbins=featbins,
-        feattypes=feattypes,
-        monotone_constraints=monotone_constraints,
-    )
-    return m, cache
+    push!(cache, :nrounds => 0)
+    push!(cache, :x_bin => x_bin)
+    push!(cache, :y => y)
+    push!(cache, :w => w)
+    push!(cache, :p => p)
+    push!(cache, :K => K)
+    push!(cache, :nodes => nodes)
+    push!(cache, :is_in => is_in)
+    push!(cache, :is_out => is_out)
+    push!(cache, :mask => mask)
+    push!(cache, :js_ => js_)
+    push!(cache, :js => js)
+    push!(cache, :out => out)
+    push!(cache, :left => left)
+    push!(cache, :right => right)
+    push!(cache, :∇ => ∇)
+    push!(cache, :monotone_constraints => monotone_constraints)
+
+    cache[:is_initialized] = true
+
+    return nothing
 end
 
 """
     init(
-        params::EvoTypes,
+        m::EvoTree,
         dtrain,
         device::Type{<:Device}=CPU;
         target_name,
@@ -137,14 +137,15 @@ end
 
 Initialise EvoTree
 """
-function init(
-    params::EvoTypes,
-    dtrain,
-    device::Type{<:Device}=CPU;
+function init!(
+    m::EvoTree,
+    dtrain;
+    device::Type{<:Device}=CPU,
     target_name,
     fnames=nothing,
     w_name=nothing,
-    offset_name=nothing
+    offset_name=nothing,
+    kwargs...
 )
 
     # set fnames
@@ -177,9 +178,9 @@ function init(
     w = isnothing(w_name) ? device_ones(device, T, nobs) : V{T}(Tables.getcolumn(dtrain, _w_name))
     offset = isnothing(offset_name) ? nothing : V{T}(Tables.getcolumn(dtrain, _offset_name))
 
-    m, cache = init_core(params, device, dtrain, fnames, y_train, w, offset)
+    init_core!(m, device, dtrain, fnames, y_train, w, offset)
 
-    return m, cache
+    return nothing
 end
 
 # This should be different on CPUs and GPUs
@@ -189,8 +190,7 @@ device_array_type(::Type{<:CPU}) = Array
 """
     init(
         params::EvoTypes,
-        x_train::AbstractMatrix,
-        y_train::AbstractVector,
+        dtrain::Tuple{Matrix,Vector};
         device::Type{<:Device}=CPU;
         fnames=nothing,
         w_train=nothing,
@@ -199,17 +199,17 @@ device_array_type(::Type{<:CPU}) = Array
 
 Initialise EvoTree
 """
-function init(
-    params::EvoTypes,
-    x_train::AbstractMatrix,
-    y_train::AbstractVector,
-    device::Type{<:Device}=CPU;
+function init!(
+    m::EvoTree,
+    dtrain::Tuple{Matrix,Vector};
+    device::Type{<:Device}=CPU,
     fnames=nothing,
     w_train=nothing,
-    offset_train=nothing
+    offset_train=nothing,
+    kwargs...
 )
 
-    # initialize model and cache
+    x_train, y_train = dtrain
     fnames = isnothing(fnames) ? [Symbol("feat_$i") for i in axes(x_train, 2)] : Symbol.(fnames)
     @assert length(fnames) == size(x_train, 2)
 
@@ -219,7 +219,7 @@ function init(
     w = isnothing(w_train) ? device_ones(device, T, nobs) : V{T}(w_train)
     offset = isnothing(offset_train) ? nothing : V{T}(offset_train)
 
-    m, cache = init_core(params, device, x_train, fnames, y_train, w, offset)
+    init_core!(m, device, x_train, fnames, y_train, w, offset)
 
-    return m, cache
+    return nothing
 end

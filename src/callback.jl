@@ -9,16 +9,17 @@ struct CallBack{B,P,Y,C,D}
 end
 
 function CallBack(
-    ::EvoTypes{L},
-    m::EvoTree{L,K},
+    m::EvoTree,
     deval,
     device::Type{<:Device};
     target_name,
     w_name=nothing,
     offset_name=nothing,
-    metric) where {L,K}
+    metric)
 
     T = Float32
+    L, K = m.config.loss_type, m.config.outsize
+
     _w_name = isnothing(w_name) ? Symbol("") : Symbol(w_name)
     _offset_name = isnothing(offset_name) ? Symbol("") : Symbol(offset_name)
     _target_name = Symbol(target_name)
@@ -61,16 +62,17 @@ function CallBack(
 end
 
 function CallBack(
-    ::EvoTypes{L},
-    m::EvoTree{L,K},
+    m::EvoTree,
     x_eval::AbstractMatrix,
     y_eval,
     device::Type{<:Device};
     w_eval=nothing,
     offset_eval=nothing,
-    metric) where {L,K}
+    metric)
 
     T = Float32
+    L, K = m.config.loss_type, m.config.outsize
+
     feval = metric_dict[metric]
     x_bin = binarize(x_eval; fnames=m.info[:fnames], edges=m.info[:edges])
     p = zeros(T, K, size(x_eval, 1))

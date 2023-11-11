@@ -1,28 +1,27 @@
-function MMI.fit(model::EvoTypes, verbosity::Int, A, y, w=nothing)
+function MMI.fit(m::EvoTree, verbosity::Int, A, y, w=nothing)
 
   A = isa(A, AbstractMatrix) ? Tables.columntable(Tables.table(A)) : Tables.columntable(A)
   nobs = Tables.DataAPI.nrow(A)
   fnames = Tables.schema(A).names
   w = isnothing(w) ? device_ones(CPU, Float32, nobs) : Vector{Float32}(w)
-  fitresult, cache = init_core(model, CPU, A, fnames, y, w, nothing)
+  fitresult, cache = init_core(m, CPU, A, fnames, y, w, nothing)
 
-  while cache[:info][:nrounds] < model.nrounds
-    grow_evotree!(fitresult, cache, model)
+  while cache[:info][:nrounds] < m.nrounds
+    grow_evotree!(m)
   end
   report = (features=cache[:fnames],)
   return fitresult, cache, report
 end
 
-function okay_to_continue(model, fitresult, cache)
-  return model.nrounds - cache[:info][:nrounds] >= 0 &&
-         all(_get_struct_loss(model) .== _get_struct_loss(fitresult))
+function okay_to_continue(m, fitresult, cache)
+  return m.nrounds - cache[:info][:nrounds] >= 0
 end
 
 # For EarlyStopping.jl support
-MMI.iteration_parameter(::Type{<:EvoTypes}) = :nrounds
+MMI.iteration_parameter(::Type{<:EvoTree}) = :nrounds
 
 function MMI.update(
-  model::EvoTypes,
+  m::EvoTree,
   verbosity::Integer,
   fitresult,
   cache,
@@ -30,13 +29,13 @@ function MMI.update(
   y,
   w=nothing,
 )
-  if okay_to_continue(model, fitresult, cache)
-    while cache[:info][:nrounds] < model.nrounds
-      grow_evotree!(fitresult, cache, model)
+  if okay_to_continue(m, fitresult, cache)
+    while cache[:info][:nrounds] < m.nrounds
+      grow_evotree!(m)
     end
     report = (features=cache[:fnames],)
   else
-    fitresult, cache, report = fit(model, verbosity, A, y, w)
+    fitresult, cache, report = fit(m, verbosity, A, y, w)
   end
   return fitresult, cache, report
 end
@@ -56,26 +55,20 @@ function predict(::EvoTreeCount, fitresult, A)
   return [Distributions.Poisson(λ) for λ ∈ λs]
 end
 
-function predict(::EvoTreeGaussian, fitresult, A)
+function predict(::EvoTreeMLE, fitresult, A)
   pred = predict(fitresult, A)
   return [Distributions.Normal(pred[i, 1], pred[i, 2]) for i in axes(pred, 1)]
 end
-
-function predict(::EvoTreeMLE{L}, fitresult, A) where {L<:GaussianMLE}
-  pred = predict(fitresult, A)
-  return [Distributions.Normal(pred[i, 1], pred[i, 2]) for i in axes(pred, 1)]
-end
-
-function predict(::EvoTreeMLE{L}, fitresult, A) where {L<:LogisticMLE}
-  pred = predict(fitresult, A)
-  return [Distributions.Logistic(pred[i, 1], pred[i, 2]) for i in axes(pred, 1)]
-end
+# function predict(::EvoTreeMLE{L}, fitresult, A) where {L<:LogisticMLE}
+#   pred = predict(fitresult, A)
+#   return [Distributions.Logistic(pred[i, 1], pred[i, 2]) for i in axes(pred, 1)]
+# end
 
 # Feature Importances
-MMI.reports_feature_importances(::Type{<:EvoTypes}) = true
-MMI.supports_weights(::Type{<:EvoTypes}) = true
+MMI.reports_feature_importances(::Type{<:EvoTree}) = true
+MMI.supports_weights(::Type{<:EvoTree}) = true
 
-function MMI.feature_importances(m::EvoTypes, fitresult, report)
+function MMI.feature_importances(m::EvoTree, fitresult, report)
   fi_pairs = importance(fitresult, fnames=report[:features])
   return fi_pairs
 end
@@ -84,7 +77,7 @@ end
 # Metadata
 
 MMI.metadata_pkg.(
-  (EvoTreeRegressor, EvoTreeClassifier, EvoTreeCount, EvoTreeGaussian, EvoTreeMLE),
+  (EvoTreeRegressor, EvoTreeClassifier, EvoTreeCount, EvoTreeMLE),
   name="EvoTrees",
   uuid="f6006082-12f8-11e9-0c9c-0d5d367ab1e5",
   url="https://github.com/Evovest/EvoTrees.jl",
@@ -126,16 +119,16 @@ MMI.metadata_model(
   path="EvoTrees.EvoTreeCount",
 )
 
-MMI.metadata_model(
-  EvoTreeGaussian,
-  input_scitype=Union{
-    MMI.Table(MMI.Continuous, MMI.Count, MMI.OrderedFactor, MMI.Multiclass),
-    AbstractMatrix{MMI.Continuous},
-  },
-  target_scitype=AbstractVector{<:MMI.Continuous},
-  weights=true,
-  path="EvoTrees.EvoTreeGaussian",
-)
+# MMI.metadata_model(
+#   EvoTreeGaussian,
+#   input_scitype=Union{
+#     MMI.Table(MMI.Continuous, MMI.Count, MMI.OrderedFactor, MMI.Multiclass),
+#     AbstractMatrix{MMI.Continuous},
+#   },
+#   target_scitype=AbstractVector{<:MMI.Continuous},
+#   weights=true,
+#   path="EvoTrees.EvoTreeGaussian",
+# )
 
 MMI.metadata_model(
   EvoTreeMLE,
@@ -534,138 +527,138 @@ See also
 """
 EvoTreeCount
 
-"""
-  EvoTreeGaussian(;kwargs...)
+# """
+#   EvoTreeGaussian(;kwargs...)
 
-A model type for constructing a EvoTreeGaussian, based on [EvoTrees.jl](https://github.com/Evovest/EvoTrees.jl), and implementing both an internal API the MLJ model interface.
-EvoTreeGaussian is used to perform Gaussian probabilistic regression, fitting μ and σ parameters to maximize likelihood.
+# A model type for constructing a EvoTreeGaussian, based on [EvoTrees.jl](https://github.com/Evovest/EvoTrees.jl), and implementing both an internal API the MLJ model interface.
+# EvoTreeGaussian is used to perform Gaussian probabilistic regression, fitting μ and σ parameters to maximize likelihood.
 
-# Hyper-parameters
+# # Hyper-parameters
 
-- `nrounds=10`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
-- `eta=0.1`:              Learning rate. Each tree raw predictions are scaled by `eta` prior to be added to the stack of predictions. Must be > 0.
-  A lower `eta` results in slower learning, requiring a higher `nrounds` but typically improves model performance.  
-- `L2::T=0.0`:            L2 regularization factor on aggregate gain. Must be >= 0. Higher L2 can result in a more robust model.
-- `lambda::T=0.0`:        L2 regularization factor on individual gain. Must be >= 0. Higher lambda can result in a more robust model.
-- `gamma::T=0.0`:         Minimum gain imprvement needed to perform a node split. Higher gamma can result in a more robust model. Must be >= 0.
-- `max_depth=5`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
-  A complete tree of depth N contains `2^(N - 1)` terminal leaves and `2^(N - 1) - 1` split nodes.
-  Compute cost is proportional to 2^max_depth. Typical optimal values are in the 3 to 9 range.
-- `min_weight=8.0`:       Minimum weight needed in a node to perform a split. Matches the number of observations by default or the sum of weights as provided by the `weights` vector. Must be > 0.
-- `rowsample=1.0`:        Proportion of rows that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
-- `colsample=1.0`:        Proportion of columns / features that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
-- `nbins=32`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
-- `monotone_constraints=Dict{Int, Int}()`: Specify monotonic constraints using a dict where the key is the feature index and the value the applicable constraint (-1=decreasing, 0=none, 1=increasing). 
-  !Experimental feature: note that for Gaussian regression, constraints may not be enforce systematically.
-- `tree_type="binary"`    Tree structure to be used. One of:
-  - `binary`:       Each node of a tree is grown independently. Tree are built depthwise until max depth is reach or if min weight or gain (see `gamma`) stops further node splits.  
-  - `oblivious`:    A common splitting condition is imposed to all nodes of a given depth. 
-- `rng=123`:              Either an integer used as a seed to the random number generator or an actual random number generator (`::Random.AbstractRNG`).
+# - `nrounds=10`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
+# - `eta=0.1`:              Learning rate. Each tree raw predictions are scaled by `eta` prior to be added to the stack of predictions. Must be > 0.
+#   A lower `eta` results in slower learning, requiring a higher `nrounds` but typically improves model performance.  
+# - `L2::T=0.0`:            L2 regularization factor on aggregate gain. Must be >= 0. Higher L2 can result in a more robust model.
+# - `lambda::T=0.0`:        L2 regularization factor on individual gain. Must be >= 0. Higher lambda can result in a more robust model.
+# - `gamma::T=0.0`:         Minimum gain imprvement needed to perform a node split. Higher gamma can result in a more robust model. Must be >= 0.
+# - `max_depth=5`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
+#   A complete tree of depth N contains `2^(N - 1)` terminal leaves and `2^(N - 1) - 1` split nodes.
+#   Compute cost is proportional to 2^max_depth. Typical optimal values are in the 3 to 9 range.
+# - `min_weight=8.0`:       Minimum weight needed in a node to perform a split. Matches the number of observations by default or the sum of weights as provided by the `weights` vector. Must be > 0.
+# - `rowsample=1.0`:        Proportion of rows that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
+# - `colsample=1.0`:        Proportion of columns / features that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
+# - `nbins=32`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
+# - `monotone_constraints=Dict{Int, Int}()`: Specify monotonic constraints using a dict where the key is the feature index and the value the applicable constraint (-1=decreasing, 0=none, 1=increasing). 
+#   !Experimental feature: note that for Gaussian regression, constraints may not be enforce systematically.
+# - `tree_type="binary"`    Tree structure to be used. One of:
+#   - `binary`:       Each node of a tree is grown independently. Tree are built depthwise until max depth is reach or if min weight or gain (see `gamma`) stops further node splits.  
+#   - `oblivious`:    A common splitting condition is imposed to all nodes of a given depth. 
+# - `rng=123`:              Either an integer used as a seed to the random number generator or an actual random number generator (`::Random.AbstractRNG`).
 
-# Internal API
+# # Internal API
 
-Do `config = EvoTreeGaussian()` to construct an instance with default hyper-parameters.
-Provide keyword arguments to override hyper-parameter defaults, as in EvoTreeGaussian(max_depth=...).
+# Do `config = EvoTreeGaussian()` to construct an instance with default hyper-parameters.
+# Provide keyword arguments to override hyper-parameter defaults, as in EvoTreeGaussian(max_depth=...).
 
-## Training model
+# ## Training model
 
-A model is built using [`fit_evotree`](@ref):
+# A model is built using [`fit_evotree`](@ref):
 
-```julia
-model = fit_evotree(config; x_train, y_train, kwargs...)
-```
+# ```julia
+# model = fit_evotree(config; x_train, y_train, kwargs...)
+# ```
 
-## Inference
+# ## Inference
 
-Predictions are obtained using [`predict`](@ref) which returns a `Matrix` of size `[nobs, 2]` where the second dimensions refer to `μ` and `σ` respectively:
+# Predictions are obtained using [`predict`](@ref) which returns a `Matrix` of size `[nobs, 2]` where the second dimensions refer to `μ` and `σ` respectively:
 
-```julia
-EvoTrees.predict(model, X)
-```
+# ```julia
+# EvoTrees.predict(model, X)
+# ```
 
-Alternatively, models act as a functor, returning predictions when called as a function with features as argument:
+# Alternatively, models act as a functor, returning predictions when called as a function with features as argument:
 
-```julia
-model(X)
-```
+# ```julia
+# model(X)
+# ```
 
-# MLJ
+# # MLJ
 
-From MLJ, the type can be imported using:
+# From MLJ, the type can be imported using:
 
-```julia
-EvoTreeGaussian = @load EvoTreeGaussian pkg=EvoTrees
-```
+# ```julia
+# EvoTreeGaussian = @load EvoTreeGaussian pkg=EvoTrees
+# ```
 
-Do `model = EvoTreeGaussian()` to construct an instance with default hyper-parameters.
-Provide keyword arguments to override hyper-parameter defaults, as in `EvoTreeGaussian(loss=...)`.
+# Do `model = EvoTreeGaussian()` to construct an instance with default hyper-parameters.
+# Provide keyword arguments to override hyper-parameter defaults, as in `EvoTreeGaussian(loss=...)`.
 
-## Training data
+# ## Training data
 
-In MLJ or MLJBase, bind an instance `model` to data with
+# In MLJ or MLJBase, bind an instance `model` to data with
 
-    mach = machine(model, X, y)
+#     mach = machine(model, X, y)
 
-where
+# where
 
-- `X`: any table of input features (eg, a `DataFrame`) whose columns
-  each have one of the following element scitypes: `Continuous`,
-  `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
+# - `X`: any table of input features (eg, a `DataFrame`) whose columns
+#   each have one of the following element scitypes: `Continuous`,
+#   `Count`, or `<:OrderedFactor`; check column scitypes with `schema(X)`
 
-- `y`: is the target, which can be any `AbstractVector` whose element
-  scitype is `<:Continuous`; check the scitype
-  with `scitype(y)`
+# - `y`: is the target, which can be any `AbstractVector` whose element
+#   scitype is `<:Continuous`; check the scitype
+#   with `scitype(y)`
 
-Train the machine using `fit!(mach, rows=...)`.
+# Train the machine using `fit!(mach, rows=...)`.
 
-## Operations
+# ## Operations
 
-- `predict(mach, Xnew)`: returns a vector of Gaussian distributions given features `Xnew` having the same scitype as `X` above.
-Predictions are probabilistic.
+# - `predict(mach, Xnew)`: returns a vector of Gaussian distributions given features `Xnew` having the same scitype as `X` above.
+# Predictions are probabilistic.
 
-Specific metrics can also be predicted using:
+# Specific metrics can also be predicted using:
 
-  - `predict_mean(mach, Xnew)`
-  - `predict_mode(mach, Xnew)`
-  - `predict_median(mach, Xnew)`
+#   - `predict_mean(mach, Xnew)`
+#   - `predict_mode(mach, Xnew)`
+#   - `predict_median(mach, Xnew)`
 
-## Fitted parameters
+# ## Fitted parameters
 
-The fields of `fitted_params(mach)` are:
+# The fields of `fitted_params(mach)` are:
 
-  - `:fitresult`: The `GBTree` object returned by EvoTrees.jl fitting algorithm.
+#   - `:fitresult`: The `GBTree` object returned by EvoTrees.jl fitting algorithm.
 
-## Report
+# ## Report
 
-The fields of `report(mach)` are:
-  - `:features`: The names of the features encountered in training.
+# The fields of `report(mach)` are:
+#   - `:features`: The names of the features encountered in training.
 
-# Examples
+# # Examples
 
-```
-# Internal API
-using EvoTrees
-params = EvoTreeGaussian(max_depth=5, nbins=32, nrounds=100)
-nobs, nfeats = 1_000, 5
-x_train, y_train = randn(nobs, nfeats), rand(nobs)
-model = fit_evotree(params; x_train, y_train)
-preds = EvoTrees.predict(model, x_train)
-```
+# ```
+# # Internal API
+# using EvoTrees
+# params = EvoTreeGaussian(max_depth=5, nbins=32, nrounds=100)
+# nobs, nfeats = 1_000, 5
+# x_train, y_train = randn(nobs, nfeats), rand(nobs)
+# model = fit_evotree(params; x_train, y_train)
+# preds = EvoTrees.predict(model, x_train)
+# ```
 
-```
-# MLJ Interface
-using MLJ
-EvoTreeGaussian = @load EvoTreeGaussian pkg=EvoTrees
-model = EvoTreeGaussian(max_depth=5, nbins=32, nrounds=100)
-X, y = @load_boston
-mach = machine(model, X, y) |> fit!
-preds = predict(mach, X)
-preds = predict_mean(mach, X)
-preds = predict_mode(mach, X)
-preds = predict_median(mach, X)
-```
-"""
-EvoTreeGaussian
+# ```
+# # MLJ Interface
+# using MLJ
+# EvoTreeGaussian = @load EvoTreeGaussian pkg=EvoTrees
+# model = EvoTreeGaussian(max_depth=5, nbins=32, nrounds=100)
+# X, y = @load_boston
+# mach = machine(model, X, y) |> fit!
+# preds = predict(mach, X)
+# preds = predict_mean(mach, X)
+# preds = predict_mode(mach, X)
+# preds = predict_median(mach, X)
+# ```
+# """
+# EvoTreeGaussian
 
 
 

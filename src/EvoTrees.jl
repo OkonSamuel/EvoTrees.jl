@@ -1,6 +1,6 @@
 module EvoTrees
 
-export fit_evotree
+# export fit_evotree
 export EvoTreeRegressor,
     EvoTreeCount,
     EvoTreeClassifier,
@@ -28,25 +28,27 @@ import MLJModelInterface as MMI
 import MLJModelInterface: fit, update, predict, schema
 import Base: convert
 
-include("models.jl")
+include("LearnAPI.jl")
+import .LearnAPI: fit!
+import .LearnAPI: is_initialized, is_iterative, is_online
 
 include("structs.jl")
+include("models.jl")
 include("loss.jl")
 include("eval.jl")
 include("predict.jl")
 include("init.jl")
 include("subsample.jl")
 include("fit-utils.jl")
-include("fit.jl")
-
-if !isdefined(Base, :get_extension)
-    include("../ext/EvoTreesCUDAExt/EvoTreesCUDAExt.jl")
-end
-
 include("callback.jl")
+include("fit.jl")
 include("importance.jl")
 include("plot.jl")
 include("MLJ.jl")
+
+# if !isdefined(Base, :get_extension)
+#     include("../ext/EvoTreesCUDAExt/EvoTreesCUDAExt.jl")
+# end
 
 function save(model::EvoTree, path)
     BSON.bson(path, Dict(:model => model))

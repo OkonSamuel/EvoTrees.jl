@@ -69,37 +69,29 @@ function Base.show(io::IO, tree::Tree)
     end
 end
 
-"""
-    EvoTree{L,K}
+# """
+#     EvoTree{L,K}
 
-An `EvoTree` holds the structure of a fitted gradient-boosted tree.
+# An `EvoTree` holds the structure of a fitted gradient-boosted tree.
 
-# Fields
-- trees::Vector{Tree{L,K}}
-- info::Dict
+# # Fields
+# - trees::Vector{Tree{L,K}}
+# - info::Dict
 
-`EvoTree` acts as a functor to perform inference on input data: 
-```
-pred = (m::EvoTree; ntree_limit=length(m.trees))(x)
-```
-"""
-struct EvoTree{L,K}
-    trees::Vector{Tree{L,K}}
-    info::Dict
-end
-# (m::EvoTree)(data, device::Type{D}=CPU; ntree_limit=length(m.trees)) where {D<:Device} =
-#     predict(m, data, device; ntree_limit)
-function (m::EvoTree)(data; ntree_limit=length(m.trees), device="cpu")
-    @assert string(device) ∈ ["cpu", "gpu"]
-    _device = string(device) == "cpu" ? CPU : GPU
-    return predict(m, data, _device; ntree_limit)
-end
-
-_get_struct_loss(::EvoTree{L,K}) where {L,K} = L
-
-function Base.show(io::IO, evotree::EvoTree)
-    println(io, "$(typeof(evotree))")
-    println(io, " - Contains $(length(evotree.trees)) trees in field `trees` (incl. 1 bias tree).")
-    println(io, " - Data input has $(length(evotree.info[:fnames])) features.")
-    println(io, " - $(keys(evotree.info)) info accessible in field `info`")
-end
+# `EvoTree` acts as a functor to perform inference on input data: 
+# ```
+# pred = (m::EvoTree; ntree_limit=length(m.trees))(x)
+# ```
+# """
+# struct EvoTree{L,K}
+#     trees::Vector{Tree{L,K}}
+#     info::Dict
+# end
+# # (m::EvoTree)(data, device::Type{D}=CPU; ntree_limit=length(m.trees)) where {D<:Device} =
+# #     predict(m, data, device; ntree_limit)
+# function (m::EvoTree)(data; ntree_limit=length(m.trees), device="cpu")
+#     @assert string(device) ∈ ["cpu", "gpu"]
+#     _device = string(device) == "cpu" ? CPU : GPU
+#     return predict(m, data, _device; ntree_limit)
+# end
+# _get_struct_loss(::EvoTree{L,K}) where {L,K} = L
