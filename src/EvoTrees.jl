@@ -7,6 +7,7 @@ export EvoTreeRegressor,
     EvoTreeMLE,
     EvoTreeGaussian,
     EvoTree,
+    # fit!,
     Random
 
 using Base.Threads: @threads, @spawn, nthreads, threadid

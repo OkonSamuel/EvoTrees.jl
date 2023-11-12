@@ -152,11 +152,6 @@ function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{MLogLo
     end
 end
 
-# prediction in Leaf - Quantile
-# function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, ::Type{<:Quantile}, config)
-#     p[1, n] = config.eta * quantile(∇[2, is], config.alpha) / (1 + config.lambda + config.L2)
-# end
-
 # prediction in Leaf - L1
 function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{L1}, config)
     ϵ = eps(eltype(p))
