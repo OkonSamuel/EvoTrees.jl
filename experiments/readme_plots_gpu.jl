@@ -32,11 +32,11 @@ x_train, x_eval = X[i_train, :], X[i_eval, :]
 y_train, y_eval = Y[i_train], Y[i_eval]
 
 # linear
-params1 = EvoTreeRegressor(;
-    loss=:linear,
+m = EvoTreeRegressor(;
+    loss=:mse,
     nrounds=500,
     nbins=64,
-    lambda=0.1,
+    L2=1,
     gamma=0.1,
     eta=0.1,
     max_depth=6,
@@ -47,24 +47,18 @@ params1 = EvoTreeRegressor(;
 )
 
 # @time model = fit_evotree(params1; x_train, y_train);
-@time model = fit_evotree(
-    params1;
-    x_train,
-    y_train,
-    x_eval,
-    y_eval,
-    metric=:mse,
+@time EvoTrees.fit!(m, (x_train, y_train);
     print_every_n=25,
     early_stopping_rounds=50,
     device
 );
 # model, logger = fit_evotree(params1; x_train, y_train, metric=:mse, x_eval, y_eval, early_stopping_rounds=20, print_every_n=10, return_logger=true);
-@time pred_train_linear_cpu = model(x_train)
-@time pred_train_linear_gpu = model(x_train; device)
+@time pred_train_linear_cpu = m(x_train)
+@time pred_train_linear_gpu = m(x_train; device)
 sum(pred_train_linear_gpu .- pred_train_linear_cpu)
 
 # @btime model = grow_gbtree($X_train, $Y_train, $params1, X_eval = $X_eval, Y_eval = $Y_eval, print_every_n = 25, metric=:mae)
-@time pred_train_linear = predict(model, x_train)
+@time pred_train_linear = EvoTrees.predict(m, x_train; device)
 mean(abs.(pred_train_linear .- y_train))
 sqrt(mean((pred_train_linear .- y_train) .^ 2))
 
@@ -74,7 +68,7 @@ params1 = EvoTreeRegressor(;
     loss=:logistic,
     nrounds=500,
     nbins=64,
-    lambda=0.1,
+    L2=1,
     gamma=0.1,
     eta=0.1,
     max_depth=6,
@@ -104,7 +98,7 @@ params1 = EvoTreeCount(;
     loss=:poisson,
     nrounds=500,
     nbins=64,
-    lambda=0.1,
+    L2=1,
     gamma=0.1,
     eta=0.1,
     max_depth=6,
@@ -134,7 +128,7 @@ params1 = EvoTreeRegressor(;
     loss=:gamma,
     nrounds=500,
     nbins=64,
-    lambda=0.1,
+    L2=1,
     gamma=0.1,
     eta=0.1,
     max_depth=6,
@@ -164,7 +158,7 @@ params1 = EvoTreeRegressor(;
     loss=:tweedie,
     nrounds=500,
     nbins=64,
-    lambda=0.1,
+    L2=1,
     gamma=0.1,
     eta=0.1,
     max_depth=6,

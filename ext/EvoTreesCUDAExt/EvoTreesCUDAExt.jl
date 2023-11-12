@@ -1,6 +1,7 @@
 module EvoTreesCUDAExt
 
 using EvoTrees
+using Tables
 using CUDA
 
 # This should be different on CPUs and GPUs

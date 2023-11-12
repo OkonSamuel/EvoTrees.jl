@@ -220,7 +220,7 @@ end
 """
 function (m::EvoTree)(data; ntree_limit=length(m.params.trees), device="cpu")
     _device = string(device) == "gpu" ? GPU : CPU
-    return predict(m, data, _device; ntree_limit)
+    return _predict(m, data, _device; ntree_limit)
 end
 
 

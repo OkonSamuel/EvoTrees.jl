@@ -1,4 +1,4 @@
-function EvoTrees.init_core!(m::EvoTrees.EvoTree, ::Type{<:EvoTrees.GPU}, data, fnames, y, w, offset)
+function EvoTrees.init_core!(m::EvoTrees.EvoTree, ::Type{EvoTrees.GPU}, data, fnames, y, w, offset)
 
     config = m.config
     params = m.params

@@ -1,4 +1,4 @@
-function EvoTrees.grow_evotree!(m::EvoTrees.EvoTree, ::Type{<:EvoTrees.GPU})
+function EvoTrees.grow_evotree!(m::EvoTrees.EvoTree, ::Type{EvoTrees.GPU})
 
     config = m.config
     trees = m.params.trees

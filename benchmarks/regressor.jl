@@ -103,20 +103,20 @@ watchlist = Dict("train" => DMatrix(x_train, y_train));
 
 @info "EvoTrees"
 verbosity = 1
-m_evo = EvoTreeRegressor(;
-    loss=loss_evo,
-    max_nrounds,
-    alpha=0.5,
-    lambda=0.0,
-    gamma=0.0,
-    eta=0.05,
-    max_depth,
-    min_weight=1.0,
-    rowsample=0.5,
-    colsample=0.5,
-    nbins=64,
-    tree_type,
-    rng=123
+
+evo_kw = Dict(
+    :loss => loss_evo,
+    :max_nrounds => max_nrounds,
+    :max_depth => max_depth,
+    :tree_type => tree_type,
+    :lambda => 0.0,
+    :gamma => 0.0,
+    :eta => 0.05,
+    :min_weight => 1.0,
+    :rowsample => 0.5,
+    :colsample => 0.5,
+    :max_bins => 64,
+    :rng => 123
 )
 
 @info "EvoTrees CPU"
@@ -125,11 +125,13 @@ device = "cpu"
 # @time m, cache = EvoTrees.init(params_evo, x_train, y_train);
 # @time m, cache = EvoTrees.init(params_evo, x_train, y_train);
 # @info "train - no eval"
+m_evo = EvoTreeRegressor(; evo_kw...)
 @time EvoTrees.fit!(m_evo, (x_train, y_train); device, verbosity, print_every_n=100);
 # @time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
 @info "train - eval"
-@time m_evo = fit_evotree(params_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
-@time m_evo = fit_evotree(params_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
+m_evo = EvoTreeRegressor(; evo_kw...)
+@time m_evo = fit_evotree(m_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
+@time m_evo = fit_evotree(m_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
 @info "predict"
 @time pred_evo = m_evo(x_train);
 @time pred_evo = m_evo(x_train);
@@ -140,6 +142,7 @@ device = "gpu"
 # @info "train - no eval"
 # CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
 # CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
+m_evo = EvoTreeRegressor(; evo_kw...)
 @time EvoTrees.fit!(m_evo, (x_train, y_train); device, verbosity, print_every_n=100);
 
 @info "train - eval"

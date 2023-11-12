@@ -302,6 +302,15 @@ end
 # A no-op on the CPU, but on the GPU we perform garbage collection
 post_fit_gc(::Type{<:CPU}) = nothing
 
+function fit!(m::EvoTree; device="cpu", kwargs...)
+    _device = string(device) == "gpu" ? GPU : CPU
+    if is_initialized(m)
+        while m.cache[:nrounds] < m.config.max_nrounds
+            grow_evotree!(m, _device)
+        end
+    end
+    return nothing
+end
 
 function fit!(m::EvoTree, dtrain; device="cpu", target_name, kwargs...)
     _device = string(device) == "gpu" ? GPU : CPU
@@ -325,11 +334,41 @@ function fit!(m::EvoTree, dtrain::Tuple{Matrix,Vector}; device="cpu", kwargs...)
     return nothing
 end
 
-function fit!(m::EvoTree; device="cpu", kwargs...)
+function fit!(m::EvoTree, dtrain, deval; device="cpu", target_name, kwargs...)
     _device = string(device) == "gpu" ? GPU : CPU
-    if is_initialized(m)
-        while m.cache[:nrounds] < m.config.max_nrounds
-            grow_evotree!(m, _device)
+    if !is_initialized(m)
+        init!(m, dtrain, deval; device, target_name, kwargs...)
+    end
+
+    while m.cache[:nrounds] < m.config.max_nrounds
+        grow_evotree!(m, _device)
+        if !isnothing(logger)
+            cb(logger, i, last(m.params.trees))
+            if i % print_every_n == 0 && verbosity > 0
+                @info "iter $i" metric = logger[:metrics][end]
+            end
+            (logger[:iter_since_best] >= logger[:early_stopping_rounds]) && break
+        end
+    end
+
+    return nothing
+end
+
+function fit!(m::EvoTree, dtrain::Tuple{Matrix,Vector}, deval::Tuple{Matrix,Vector};
+    device="cpu", kwargs...)
+
+    _device = string(device) == "gpu" ? GPU : CPU
+    if !is_initialized(m)
+        init!(m, dtrain, deval; device, kwargs...)
+    end
+    while m.cache[:nrounds] < m.config.max_nrounds
+        grow_evotree!(m, _device)
+        if !isnothing(logger)
+            cb(logger, i, last(m.params.trees))
+            if i % print_every_n == 0 && verbosity > 0
+                @info "iter $i" metric = logger[:metrics][end]
+            end
+            (logger[:iter_since_best] >= logger[:early_stopping_rounds]) && break
         end
     end
     return nothing
