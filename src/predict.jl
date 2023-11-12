@@ -133,18 +133,18 @@ end
 
 
 # prediction in Leaf - MLE2P
-function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:GradientRegression}, config)
+function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:MLE2P}, config)
     ϵ = eps(eltype(p))
     p[1, n] = -config.eta * ∑[1] / max(ϵ, (∑[3] + config.lambda * ∑[5] + config.L2))
     p[2, n] = -config.eta * ∑[2] / max(ϵ, (∑[4] + config.lambda * ∑[5] + config.L2))
 end
-function pred_scalar(∑::AbstractVector, ::Type{<:GradientRegression}, config)
+function pred_scalar(∑::AbstractVector, ::Type{<:MLE2P}, config)
     ϵ = eps(eltype(∑))
     -config.eta * ∑[1] / max(ϵ, (∑[3] + config.lambda * ∑[5] + config.L2))
 end
 
 # prediction in Leaf - MultiClassRegression
-function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:GradientRegression}, config)
+function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{MLogLoss}, config)
     ϵ = eps(eltype(p))
     K = size(p, 1)
     @inbounds for k = axes(p, 1)
@@ -153,16 +153,16 @@ function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:Grad
 end
 
 # prediction in Leaf - Quantile
-# function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, ::Type{<:GradientRegression}, config)
+# function pred_leaf_cpu!(p::Matrix, n, ∑::AbstractVector{T}, ::Type{<:Quantile}, config)
 #     p[1, n] = config.eta * quantile(∇[2, is], config.alpha) / (1 + config.lambda + config.L2)
 # end
 
 # prediction in Leaf - L1
-function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{<:GradientRegression}, config)
+function pred_leaf_cpu!(p::AbstractMatrix, n, ∑::AbstractVector, ::Type{L1}, config)
     ϵ = eps(eltype(p))
     p[1, n] = config.eta * ∑[1] / max(ϵ, (∑[3] * (1 + config.lambda + config.L2)))
 end
-function pred_scalar(∑::AbstractVector, ::Type{<:GradientRegression}, config)
+function pred_scalar(∑::AbstractVector, ::Type{L1}, config)
     ϵ = eps(eltype(∑))
     config.eta * ∑[1] / max(ϵ, (∑[3] * (1 + config.lambda + config.L2)))
 end

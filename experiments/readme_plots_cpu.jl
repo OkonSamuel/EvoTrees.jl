@@ -30,7 +30,7 @@ x_train, x_eval = X[i_train, :], X[i_eval, :]
 y_train, y_eval = Y[i_train], Y[i_eval]
 
 # linear
-params1 = EvoTreeRegressor(;
+m = EvoTreeRegressor(;
     loss=:mse,
     alpha=1,
     nrounds=200,
@@ -46,39 +46,36 @@ params1 = EvoTreeRegressor(;
     rng=122
 )
 
-@time model = fit_evotree(
-    params1;
-    x_train,
-    y_train,
-    x_eval,
-    y_eval,
+@time EvoTrees.fit!(
+    m,
+    (x_train, y_train);
     metric=:mse,
     print_every_n=25,
     early_stopping_rounds=20
 );
 
-# plot(model, 2)
-# laptop: 51.651 ms (237548 allocations: 23.94 MiB)
-# @btime model = fit_evotree(params1; x_train, y_train, x_eval = x_eval, y_eval = y_eval, metric = :mse, print_every_n = 999, verbosity=0);
-# Profile.clear()  # in case we have any previous profiling data
-# @profile fit_evotree(params1, X_train, Y_train, X_eval = X_eval, Y_eval = Y_eval, print_every_n = 25)
-# ProfileView.view()
-model, logger = fit_evotree(
-    params1;
-    x_train,
-    y_train,
-    metric=:mse,
-    x_eval,
-    y_eval,
-    early_stopping_rounds=20,
-    print_every_n=10,
-    return_logger=true
-);
+# # plot(model, 2)
+# # laptop: 51.651 ms (237548 allocations: 23.94 MiB)
+# # @btime model = fit_evotree(params1; x_train, y_train, x_eval = x_eval, y_eval = y_eval, metric = :mse, print_every_n = 999, verbosity=0);
+# # Profile.clear()  # in case we have any previous profiling data
+# # @profile fit_evotree(params1, X_train, Y_train, X_eval = X_eval, Y_eval = Y_eval, print_every_n = 25)
+# # ProfileView.view()
+# model, logger = fit_evotree(
+#     params1;
+#     x_train,
+#     y_train,
+#     metric=:mse,
+#     x_eval,
+#     y_eval,
+#     early_stopping_rounds=20,
+#     print_every_n=10,
+#     return_logger=true
+# );
 # plot(logger[:metrics])
 
 # @btime model = grow_gbtree($X_train, $Y_train, $params1, X_eval = $X_eval, Y_eval = $Y_eval, print_every_n = 25, metric=:mae)
-@time pred_train_linear = model(x_train);
-@time pred_eval_linear = model(x_eval)
+@time pred_train_linear = m(x_train);
+@time pred_eval_linear = m(x_eval)
 mean((pred_train_linear .- y_train) .^ 2)
 mean((pred_eval_linear .- y_eval) .^ 2)
 
@@ -169,7 +166,7 @@ params1 = EvoTreeRegressor(;
     min_weight=1.0,
     rowsample=0.5,
     colsample=1.0,
-    tree_type,
+    tree_type
 )
 @time model = fit_evotree(
     params1;
@@ -241,7 +238,7 @@ params1 = EvoTreeCount(;
     min_weight=1.0,
     rowsample=0.5,
     colsample=1.0,
-    tree_type,
+    tree_type
 )
 @time model = fit_evotree(
     params1;
@@ -268,7 +265,7 @@ params1 = EvoTreeRegressor(;
     min_weight=1.0,
     rowsample=0.5,
     colsample=1.0,
-    tree_type,
+    tree_type
 )
 @time model = fit_evotree(
     params1;
@@ -295,7 +292,7 @@ params1 = EvoTreeRegressor(;
     min_weight=1.0,
     rowsample=0.5,
     colsample=1.0,
-    tree_type,
+    tree_type
 )
 @time model = fit_evotree(
     params1;
@@ -364,7 +361,7 @@ params1 = EvoTreeRegressor(;
     min_weight=1.0,
     rowsample=0.5,
     colsample=1.0,
-    tree_type,
+    tree_type
 )
 @time model = fit_evotree(
     params1;
@@ -394,7 +391,7 @@ params1 = EvoTreeRegressor(;
     min_weight=1.0,
     rowsample=0.5,
     colsample=1.0,
-    tree_type,
+    tree_type
 )
 @time model = fit_evotree(params1; x_train, y_train, x_eval, y_eval, print_every_n=25);
 @time pred_train_q20 = model(x_train)
@@ -413,7 +410,7 @@ params1 = EvoTreeRegressor(;
     min_weight=1.0,
     rowsample=0.5,
     colsample=1.0,
-    tree_type,
+    tree_type
 )
 @time model = fit_evotree(params1; x_train, y_train, x_eval, y_eval, print_every_n=25)
 @time pred_train_q80 = model(x_train)
@@ -472,7 +469,7 @@ params1 = EvoTreeMLE(;
     rowsample=0.5,
     colsample=1.0,
     rng=123,
-    tree_type,
+    tree_type
 )
 
 @time model = fit_evotree(
@@ -557,7 +554,7 @@ params1 = EvoTrees.EvoTreeMLE(;
     rowsample=0.5,
     colsample=1.0,
     tree_type,
-    rng=123,
+    rng=123
 )
 
 @time model = fit_evotree(

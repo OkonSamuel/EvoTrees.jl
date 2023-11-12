@@ -46,9 +46,9 @@ include("importance.jl")
 include("plot.jl")
 include("MLJ.jl")
 
-# if !isdefined(Base, :get_extension)
-#     include("../ext/EvoTreesCUDAExt/EvoTreesCUDAExt.jl")
-# end
+if !isdefined(Base, :get_extension)
+    include("../ext/EvoTreesCUDAExt/EvoTreesCUDAExt.jl")
+end
 
 function save(model::EvoTree, path)
     BSON.bson(path, Dict(:model => model))

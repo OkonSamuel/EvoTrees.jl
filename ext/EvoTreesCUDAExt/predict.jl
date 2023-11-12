@@ -166,8 +166,9 @@ function predict(
     x_bin = CuArray(binarize(data; fnames=info[:fnames], edges=info[:edges]))
     nobs = size(x_bin, 1)
     pred = CUDA.zeros(K, nobs)
+    feattypes = CuArray(info[:feattypes_gpu])
     for i = 1:ntree_limit
-        predict!(pred, trees[i], x_bin, info[:feattypes])
+        predict!(pred, trees[i], x_bin, feattypes)
     end
     if L == EvoTrees.LogLoss
         pred .= EvoTrees.sigmoid.(pred)

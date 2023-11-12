@@ -3,7 +3,7 @@
 
 Given a instantiate
 """
-function grow_evotree!(m::EvoTree, ::Type{<:Device}=CPU)
+function grow_evotree!(m::EvoTree, ::Type{CPU})
 
     config = m.config
     trees = m.params.trees
@@ -52,7 +52,7 @@ function grow_tree!(
     out,
     left,
     right,
-    x_bin,
+    x_bin::Matrix,
     monotone_constraints,
     feattypes::Vector{Bool}
 ) where {L,K,N}
@@ -200,7 +200,6 @@ function grow_otree!(
         end
         if depth == config.max_depth || min_weight_flag
             for n in n_current
-                # @info "length(nodes[n].is)" length(nodes[n].is) depth n
                 pred_leaf_cpu!(tree.pred, n, nodes[n].∑, config.loss_type, config)
             end
         else
@@ -304,30 +303,33 @@ end
 post_fit_gc(::Type{<:CPU}) = nothing
 
 
-function fit!(m::EvoTree, dtrain; target_name, kwargs...)
+function fit!(m::EvoTree, dtrain; device="cpu", target_name, kwargs...)
+    _device = string(device) == "gpu" ? GPU : CPU
     if !is_initialized(m)
-        init!(m, dtrain; target_name, kwargs...)
+        init!(m, dtrain; device, target_name, kwargs...)
     end
     while m.cache[:nrounds] < m.config.max_nrounds
-        grow_evotree!(m)
+        grow_evotree!(m, _device)
     end
     return nothing
 end
 
-function fit!(m::EvoTree, dtrain::Tuple{Matrix,Vector}; w=nothing, kwargs...)
+function fit!(m::EvoTree, dtrain::Tuple{Matrix,Vector}; device="cpu", kwargs...)
+    _device = string(device) == "gpu" ? GPU : CPU
     if !is_initialized(m)
-        init!(m, dtrain; w_train=w, kwargs...)
+        init!(m, dtrain; device, kwargs...)
     end
     while m.cache[:nrounds] < m.config.max_nrounds
-        grow_evotree!(m)
+        grow_evotree!(m, _device)
     end
     return nothing
 end
 
-function fit!(m::EvoTree; kwargs...)
+function fit!(m::EvoTree; device="cpu", kwargs...)
+    _device = string(device) == "gpu" ? GPU : CPU
     if is_initialized(m)
         while m.cache[:nrounds] < m.config.max_nrounds
-            grow_evotree!(m)
+            grow_evotree!(m, _device)
         end
     end
     return nothing

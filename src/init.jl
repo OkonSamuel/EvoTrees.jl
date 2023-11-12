@@ -140,13 +140,15 @@ Initialise EvoTree
 function init!(
     m::EvoTree,
     dtrain;
-    device::Type{<:Device}=CPU,
     target_name,
+    device="cpu",
     fnames=nothing,
     w_name=nothing,
     offset_name=nothing,
     kwargs...
 )
+
+    _device = string(device) == "gpu" ? GPU : CPU
 
     # set fnames
     schema = Tables.schema(dtrain)
@@ -174,24 +176,24 @@ function init!(
     T = Float32
     nobs = length(Tables.getcolumn(dtrain, 1))
     y_train = Tables.getcolumn(dtrain, _target_name)
-    V = device_array_type(device)
-    w = isnothing(w_name) ? device_ones(device, T, nobs) : V{T}(Tables.getcolumn(dtrain, _w_name))
+    V = device_array_type(_device)
+    w = isnothing(w_name) ? device_ones(_device, T, nobs) : V{T}(Tables.getcolumn(dtrain, _w_name))
     offset = isnothing(offset_name) ? nothing : V{T}(Tables.getcolumn(dtrain, _offset_name))
 
-    init_core!(m, device, dtrain, fnames, y_train, w, offset)
+    init_core!(m, _device, dtrain, fnames, y_train, w, offset)
 
     return nothing
 end
 
 # This should be different on CPUs and GPUs
-device_ones(::Type{<:CPU}, ::Type{T}, n::Int) where {T} = ones(T, n)
-device_array_type(::Type{<:CPU}) = Array
+device_ones(::Type{CPU}, ::Type{T}, n::Int) where {T} = ones(T, n)
+device_array_type(::Type{CPU}) = Array
 
 """
     init(
         params::EvoTypes,
         dtrain::Tuple{Matrix,Vector};
-        device::Type{<:Device}=CPU;
+        device="cpu",
         fnames=nothing,
         w_train=nothing,
         offset_train=nothing
@@ -202,24 +204,25 @@ Initialise EvoTree
 function init!(
     m::EvoTree,
     dtrain::Tuple{Matrix,Vector};
-    device::Type{<:Device}=CPU,
+    device="cpu",
     fnames=nothing,
     w_train=nothing,
     offset_train=nothing,
     kwargs...
 )
 
+    _device = string(device) == "gpu" ? GPU : CPU
     x_train, y_train = dtrain
     fnames = isnothing(fnames) ? [Symbol("feat_$i") for i in axes(x_train, 2)] : Symbol.(fnames)
     @assert length(fnames) == size(x_train, 2)
 
     T = Float32
     nobs = size(x_train, 1)
-    V = device_array_type(device)
-    w = isnothing(w_train) ? device_ones(device, T, nobs) : V{T}(w_train)
+    V = device_array_type(_device)
+    w = isnothing(w_train) ? device_ones(_device, T, nobs) : V{T}(w_train)
     offset = isnothing(offset_train) ? nothing : V{T}(offset_train)
 
-    init_core!(m, device, x_train, fnames, y_train, w, offset)
+    init_core!(m, _device, x_train, fnames, y_train, w, offset)
 
     return nothing
 end

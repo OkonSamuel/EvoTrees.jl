@@ -58,7 +58,7 @@ LearnAPI.support_online(::Type{MyModel}) = false
 
 - By only having a mutating `fit!`, it eliminates the subjectivity in the nature of the values returned by `fit`, as in MMI's tupple `(fitted, cache, report)`.
 
-### Model instantiation
+## Model instantiation
 
 Aligned with current MLJ practice: 
 
@@ -66,7 +66,7 @@ Aligned with current MLJ practice:
 model = MyModel(; kwargs...)
 ```
 
-### fit!
+## fit!
 
 `fit!` is expected to be a mutating function as the fitting process will alter the instantiated model through update to the model parameters and associated data.
 
@@ -84,17 +84,24 @@ LearnAPI.fit!(m::MyModel, (x_train, y_train))
 LearnAPI.fit!(m::MyModel, df::DataFrame)
 ```
 
+Having a single position arg to gold trainding allows to support various styles for passing in data:  
+- single dataframe holding both features and target variables, and optionally weight and offset. Identification of variables can be performed through keyword argument (ex: feature_names = fnames::Vector{String}).
+- `(features_matrix, target_vector)` tuple.  
+ a single argument position for training data
+- data loader: as used in neural network, notably through MLUtils's DataLoader
+
+
 ### Iteration
 
 Training of iterative models typically involve the tracking of eval metric on out-of sample data. 
 This notably touch most prevalent Tabular ML models like XGBoost, LightGBM, CatBoost, EvoTrees as well as any neural network / deep learning model.
 
-Ideap is to indicated such model with:
+Models that can be trained iteratively are identified with:
 ```julia
 LearnAPI.support_iterative(::Type{MyModel}) = true
 ```
 
-In which case a 3-positional arg `fit!` must be implemented:
+A 3-positional arg `fit!` must be implemented:
 
 ```julia
 LeanAPI.fit!(model::LearnAPI.Model, dtrain, deval; verbosity, kwargs...)
@@ -117,7 +124,7 @@ iter = IterativeConfig() # defines a hyper parameter update strategy, like learn
 fit!(iter, m) # this function would internally alternate modifications to hyper-params and calls to fit!(m) 
 ```
 
-## Online
+### Online
 
 To support online mechanism, an additional function appears needed to distinguish between a complete `fit!` over a provided dataset (which may perform multiple cycles) and an online mechanism which performs a single update 
 based on new input data.

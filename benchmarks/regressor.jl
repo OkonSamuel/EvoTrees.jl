@@ -1,7 +1,7 @@
 using Revise
 using Statistics
 using StatsBase: sample
-using XGBoost
+# using XGBoost
 # using LightGBM
 using EvoTrees
 using BenchmarkTools
@@ -21,7 +21,7 @@ using Random: seed!
 
 nobs = Int(1e6)
 num_feat = Int(100)
-nrounds = 200
+max_nrounds = 200
 max_depth = 6
 tree_type = "binary"
 T = Float64
@@ -48,7 +48,7 @@ end
 @info "XGBoost"
 @info "train"
 params_xgb = Dict(
-    :num_round => nrounds,
+    :num_round => max_nrounds,
     :max_depth => max_depth - 1,
     :eta => 0.05,
     :objective => loss_xgb,
@@ -103,14 +103,14 @@ watchlist = Dict("train" => DMatrix(x_train, y_train));
 
 @info "EvoTrees"
 verbosity = 1
-params_evo = EvoTreeRegressor(;
+m_evo = EvoTreeRegressor(;
     loss=loss_evo,
-    nrounds=nrounds,
+    max_nrounds,
     alpha=0.5,
     lambda=0.0,
     gamma=0.0,
     eta=0.05,
-    max_depth=max_depth,
+    max_depth,
     min_weight=1.0,
     rowsample=0.5,
     colsample=0.5,
@@ -125,7 +125,7 @@ device = "cpu"
 # @time m, cache = EvoTrees.init(params_evo, x_train, y_train);
 # @time m, cache = EvoTrees.init(params_evo, x_train, y_train);
 # @info "train - no eval"
-# @time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
+@time EvoTrees.fit!(m_evo, (x_train, y_train); device, verbosity, print_every_n=100);
 # @time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
 @info "train - eval"
 @time m_evo = fit_evotree(params_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
@@ -140,6 +140,8 @@ device = "gpu"
 # @info "train - no eval"
 # CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
 # CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
+@time EvoTrees.fit!(m_evo, (x_train, y_train); device, verbosity, print_every_n=100);
+
 @info "train - eval"
 CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
 CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
