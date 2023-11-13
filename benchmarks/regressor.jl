@@ -1,7 +1,7 @@
 using Revise
 using Statistics
 using StatsBase: sample
-# using XGBoost
+using XGBoost
 # using LightGBM
 using EvoTrees
 using BenchmarkTools
@@ -121,36 +121,51 @@ evo_kw = Dict(
 
 @info "EvoTrees CPU"
 device = "cpu"
+
 # @info "init"
-# @time m, cache = EvoTrees.init(params_evo, x_train, y_train);
-# @time m, cache = EvoTrees.init(params_evo, x_train, y_train);
+# m_evo = EvoTreeRegressor(; evo_kw...)
+# @time EvoTrees.init!(m_evo, (x_train, y_train); device);
+# m_evo = EvoTreeRegressor(; evo_kw...)
+# @time EvoTrees.init!(m_evo, (x_train, y_train); device);
+
 # @info "train - no eval"
-m_evo = EvoTreeRegressor(; evo_kw...)
-@time EvoTrees.fit!(m_evo, (x_train, y_train); device, verbosity, print_every_n=100);
-# @time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
+# m_evo = EvoTreeRegressor(; evo_kw...)
+# @time EvoTrees.fit!(m_evo, (x_train, y_train); device);
+# m_evo = EvoTreeRegressor(; evo_kw...)
+# @time EvoTrees.fit!(m_evo, (x_train, y_train); device);
+
 @info "train - eval"
 m_evo = EvoTreeRegressor(; evo_kw...)
-@time m_evo = fit_evotree(m_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
-@time m_evo = fit_evotree(m_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
+@time EvoTrees.fit!(m_evo, (x_train, y_train), (x_train, y_train); metric=metric_evo, device, verbosity, print_every_n=100);
+m_evo = EvoTreeRegressor(; evo_kw...)
+@time EvoTrees.fit!(m_evo, (x_train, y_train), (x_train, y_train); metric=metric_evo, device, verbosity, print_every_n=100);
+
 @info "predict"
 @time pred_evo = m_evo(x_train);
 @time pred_evo = m_evo(x_train);
-# @btime m_evo($x_train);
+
 
 @info "EvoTrees GPU"
 device = "gpu"
+
+# @info "init"
+# m_evo = EvoTreeRegressor(; evo_kw...)
+# @time EvoTrees.init!(m_evo, (x_train, y_train); device, verbosity);
+# m_evo = EvoTreeRegressor(; evo_kw...)
+# @time EvoTrees.init!(m_evo, (x_train, y_train); device, verbosity);
+
 # @info "train - no eval"
-# CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
-# CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, device, verbosity, print_every_n=100);
-m_evo = EvoTreeRegressor(; evo_kw...)
-@time EvoTrees.fit!(m_evo, (x_train, y_train); device, verbosity, print_every_n=100);
+# m_evo = EvoTreeRegressor(; evo_kw...)
+# @time EvoTrees.fit!(m_evo, (x_train, y_train); device, verbosity);
+# m_evo = EvoTreeRegressor(; evo_kw...)
+# @time EvoTrees.fit!(m_evo, (x_train, y_train); device, verbosity);
 
 @info "train - eval"
-CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
-CUDA.@time m_evo = fit_evotree(params_evo; x_train, y_train, x_eval=x_train, y_eval=y_train, metric=metric_evo, device, verbosity, print_every_n=100);
-# @time m_evo = fit_evotree(params_evo; x_train, y_train);
-# @btime fit_evotree($params_evo; x_train=$x_train, y_train=$y_train, x_eval=$x_train, y_eval=$y_train, metric=metric_evo, device, verbosity);
+m_evo = EvoTreeRegressor(; evo_kw...)
+@time EvoTrees.fit!(m_evo, (x_train, y_train), (x_train, y_train); metric=metric_evo, device, verbosity, print_every_n=100);
+m_evo = EvoTreeRegressor(; evo_kw...)
+@time EvoTrees.fit!(m_evo, (x_train, y_train), (x_train, y_train); metric=metric_evo, device, verbosity, print_every_n=100);
+
 @info "predict"
-CUDA.@time pred_evo = m_evo(x_train; device);
-CUDA.@time pred_evo = m_evo(x_train; device);
-# @btime m_evo($x_train; device);
+@time pred_evo = m_evo(x_train; device);
+@time pred_evo = m_evo(x_train; device);

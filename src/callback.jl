@@ -18,14 +18,14 @@ function CallBack(
     metric)
 
     T = Float32
-    L, K = m.config.loss_type, m.config.outsize
+    L, K = m.params.loss_type, m.params.outsize
 
     _w_name = isnothing(w_name) ? Symbol("") : Symbol(w_name)
     _offset_name = isnothing(offset_name) ? Symbol("") : Symbol(offset_name)
     _target_name = Symbol(target_name)
 
     feval = metric_dict[metric]
-    x_bin = binarize(deval; fnames=m.info[:fnames], edges=m.info[:edges])
+    x_bin = binarize(deval; fnames=m.params.info[:fnames], edges=m.params.info[:edges])
     nobs = length(Tables.getcolumn(deval, 1))
     p = zeros(T, K, nobs)
 
@@ -58,23 +58,23 @@ function CallBack(
         p .+= offset'
     end
 
-    return CallBack(feval, convert(V, x_bin), convert(V, p), convert(V, y), w, similar(w), convert(V, m.info[:feattypes]))
+    return CallBack(feval, convert(V, x_bin), convert(V, p), convert(V, y), w, similar(w), convert(V, m.params.info[:feattypes]))
 end
 
 function CallBack(
     m::EvoTree,
-    x_eval::AbstractMatrix,
-    y_eval,
+    deval::Tuple{Matrix,Vector},
     device::Type{<:Device};
     w_eval=nothing,
     offset_eval=nothing,
     metric)
 
     T = Float32
-    L, K = m.config.loss_type, m.config.outsize
+    L, K = m.params.loss_type, m.params.outsize
+    x_eval, y_eval = deval
 
     feval = metric_dict[metric]
-    x_bin = binarize(x_eval; fnames=m.info[:fnames], edges=m.info[:edges])
+    x_bin = binarize(x_eval; fnames=m.params.info[:fnames], edges=m.params.info[:edges])
     p = zeros(T, K, size(x_eval, 1))
 
     if L == MLogLoss
@@ -104,7 +104,7 @@ function CallBack(
         p .+= offset'
     end
 
-    return CallBack(feval, convert(V, x_bin), convert(V, p), convert(V, y), w, similar(w), convert(V, m.info[:feattypes]))
+    return CallBack(feval, convert(V, x_bin), convert(V, p), convert(V, y), w, similar(w), convert(V, m.params.info[:feattypes]))
 end
 
 function (cb::CallBack)(logger, iter, tree)

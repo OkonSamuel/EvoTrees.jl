@@ -1,5 +1,5 @@
 """
-    grow_evotree!(evotree::EvoTree{L,K}, cache, params::EvoTypes{L}, ::Type{<:Device}=CPU) where {L,K}
+    grow_evotree!(evotree::EvoTree{L,K}, cache, params::EvoTypes{L}, ::Type{CPU}) where {L,K}
 
 Given a instantiate
 """
@@ -300,7 +300,7 @@ function grow_otree!(
 end
 
 # A no-op on the CPU, but on the GPU we perform garbage collection
-post_fit_gc(::Type{<:CPU}) = nothing
+post_fit_gc(::Type{CPU}) = nothing
 
 function fit!(m::EvoTree; device="cpu", kwargs...)
     _device = string(device) == "gpu" ? GPU : CPU
@@ -323,7 +323,11 @@ function fit!(m::EvoTree, dtrain; device="cpu", target_name, kwargs...)
     return nothing
 end
 
-function fit!(m::EvoTree, dtrain::Tuple{Matrix,Vector}; device="cpu", kwargs...)
+
+function fit!(m::EvoTree, dtrain::Tuple{Matrix,Vector};
+    device="cpu",
+    kwargs...)
+
     _device = string(device) == "gpu" ? GPU : CPU
     if !is_initialized(m)
         init!(m, dtrain; device, kwargs...)
@@ -334,42 +338,64 @@ function fit!(m::EvoTree, dtrain::Tuple{Matrix,Vector}; device="cpu", kwargs...)
     return nothing
 end
 
-function fit!(m::EvoTree, dtrain, deval; device="cpu", target_name, kwargs...)
+function fit!(m::EvoTree, dtrain, deval;
+    device="cpu",
+    target_name,
+    w_name=nothing,
+    offset_name=nothing,
+    metric=:mse,
+    early_stopping_rounds=9999,
+    verbosity=0,
+    print_every_n=1,
+    kwargs...)
+
     _device = string(device) == "gpu" ? GPU : CPU
     if !is_initialized(m)
-        init!(m, dtrain, deval; device, target_name, kwargs...)
+        init!(m, dtrain; device, target_name, kwargs...)
+        deval = Tables.columntable(deval)
+        cb = CallBack(m, deval, _device; target_name, w_name, offset_name, metric)
+        m.cache[:logger] = init_logger(; metric, maximise=is_maximise(cb.feval), early_stopping_rounds)
+        cb(m.cache[:logger], 0, last(m.params.trees))
+        (verbosity > 0) && @info "initialization" metric = last(m.cache[:logger][:metrics])
     end
 
     while m.cache[:nrounds] < m.config.max_nrounds
         grow_evotree!(m, _device)
-        if !isnothing(logger)
-            cb(logger, i, last(m.params.trees))
-            if i % print_every_n == 0 && verbosity > 0
-                @info "iter $i" metric = logger[:metrics][end]
-            end
-            (logger[:iter_since_best] >= logger[:early_stopping_rounds]) && break
+        cb(m.cache[:logger], m.cache[:nrounds], last(m.params.trees))
+        if m.cache[:nrounds] % print_every_n == 0 && verbosity > 0
+            @info "iter $(m.cache[:nrounds])" metric = last(m.cache[:logger][:metrics])
         end
+        (m.cache[:logger][:iter_since_best] >= m.cache[:logger][:early_stopping_rounds]) && break
     end
 
     return nothing
 end
 
 function fit!(m::EvoTree, dtrain::Tuple{Matrix,Vector}, deval::Tuple{Matrix,Vector};
-    device="cpu", kwargs...)
+    device="cpu",
+    w_eval=nothing,
+    offset_eval=nothing,
+    metric=:mse,
+    early_stopping_rounds=9999,
+    print_every_n=1,
+    verbosity=0,
+    kwargs...)
 
     _device = string(device) == "gpu" ? GPU : CPU
     if !is_initialized(m)
-        init!(m, dtrain, deval; device, kwargs...)
+        init!(m, dtrain; device, kwargs...)
+        cb = CallBack(m, deval, _device; metric, w_eval, offset_eval)
+        m.cache[:logger] = init_logger(; metric, maximise=is_maximise(cb.feval), early_stopping_rounds)
+        cb(m.cache[:logger], 0, last(m.params.trees))
+        (verbosity > 0) && @info "initialization" metric = last(m.cache[:logger][:metrics])
     end
     while m.cache[:nrounds] < m.config.max_nrounds
         grow_evotree!(m, _device)
-        if !isnothing(logger)
-            cb(logger, i, last(m.params.trees))
-            if i % print_every_n == 0 && verbosity > 0
-                @info "iter $i" metric = logger[:metrics][end]
-            end
-            (logger[:iter_since_best] >= logger[:early_stopping_rounds]) && break
+        cb(m.cache[:logger], m.cache[:nrounds], last(m.params.trees))
+        if m.cache[:nrounds] % print_every_n == 0 && verbosity > 0
+            @info "iter $(m.cache[:nrounds])" metric = last(m.cache[:logger][:metrics])
         end
+        (m.cache[:logger][:iter_since_best] >= m.cache[:logger][:early_stopping_rounds]) && break
     end
     return nothing
 end
