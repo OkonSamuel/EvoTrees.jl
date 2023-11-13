@@ -99,10 +99,11 @@ function Config(; kwargs...)
         error("Invalid loss: $(args[:loss]). Must be one of $(keys(_loss2type_dict)).")
     end
     L = _loss2type(args[:loss])
+    K = L <: MLE2P ? 2 : 1
 
     config = Config(
         L,
-        1,
+        K,
         args[:loss],
         args[:max_nrounds],
         args[:L2],
@@ -140,8 +141,8 @@ struct Params
 end
 
 function Params(config::Config)
-    L = MSE
-    K = 1
+    L = config.loss_type
+    K = config.outsize
     info = Dict{Symbol,Any}()
     trees = Tree{L,K}[]
     params = Params(L, K, info, trees)
