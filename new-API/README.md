@@ -8,10 +8,10 @@ Explore design around LearnAPI.
     - Should be easy and intuitive to perform simple task. There's been regularly comments about how MLJ design appears appealingly robust, but hard to get started. 
     - Example: recent Slack question on how to fit Titanic dataset.
 - Performance friendly
-    - Reliance on a ML toolkit shouldn't impaired the performance compared to usage of source model API. 
-    - For example, there should be no overhead indduced by the tracking of an eval metric on boosted tree models, as it is currently the case (as there's no friendly mechanism for caching eval's predictions)
+    - Reliance on a ML toolkit shouldn't impair the performance compared to usage of source model API. 
+    - For example, there should be no overhead induced by the tracking of an eval metric on boosted tree models, as it is currently the case (as there's no friendly mechanism for caching eval's predictions)
 - Production friendly
-    - ML interface should be friendly to production context. Ie. consider the focus on reproducibility, deployment of pipelines, miniminzed inference (compiled) models, save/load, etc. 
+    - ML interface should be friendly to production context. Ie. consider the focus on reproducibility, deployment of pipelines, minimized/compiles inference models, save/load, etc. 
 - Well defined scope
     - Is LearnAPI looking to cover any kind of model mapping X to Y?
     - Covers the typical ML models (linear, GLM, MixedModels, Trees, GBT, RandomForest).
@@ -19,7 +19,7 @@ Explore design around LearnAPI.
     - Time-series models
     - Unsupervised models (PCA, autoencoder...)
     - Data Transformation / Pipelines (are also mapping of X -> Y)
-- Minimal constraints on model developper
+- Minimal constraints on model developer
     - Integration with the Interface should be minimal and limit the imposition of syntactic and design choices.
     - As users and devs can come from very diverse background, the intersection of what is seen as obvious and common is posed to be limited. Each additional constraint is a potential new source of friction for adoption. 
 
@@ -51,12 +51,12 @@ LearnAPI.support_online(::Type{MyModel}) = false
     - LearnAPI minimal dependency is a desirable design.
 
 - Drop of the verbosity positional argument
-    - Is a somewhat arbitrary convetion that limits intuitive function usage and flexibility in using dispatch for representing borad high-level concepts. (see below the proposal for 1-2-3 positional arguments meaning)
+    - Is a somewhat arbitrary convention that limits intuitive function usage and flexibility in using dispatch for representing broad high-level concepts. (see below the proposal for 1-2-3 positional arguments meaning)
 
 - Definition number of targets or classes upfront
-    - Desirable as whether there's 1 or more targets, or 2 or more classes, can influence the type of the modl to be instantiated. 
+    - Desirable as whether there's 1 or more targets, or 2 or more classes, can influence the type of the model to be instantiated. 
 
-- By only having a mutating `fit!`, it eliminates the subjectivity in the nature of the values returned by `fit`, as in MMI's tupple `(fitted, cache, report)`.
+- By only having a mutating `fit!`, it eliminates the subjectivity in the nature of the values returned by `fit`, as in MMI's tuple `(fitted, cache, report)`.
 
 ## Model instantiation
 
@@ -76,7 +76,7 @@ Basic required implementation is a 2 positional arguments plus kwargs:
 LeanAPI.fit!(model::LearnAPI.Model, dtrain; verbosity, kwargs...)
 ```
 
-The above is meant to facilitate flexbility in support of various forms of data inputs.
+The above is meant to facilitate flexibility in support of various forms of data inputs.
 For example:
 
 ```julia
@@ -89,11 +89,11 @@ Having a single position arg to refer to training data allows to support various
 - `(features_matrix, target_vector)` tuple.  
  a single argument position for training data
 - data loader: as used in neural network, notably through MLUtils's DataLoader
-- We can also imagine support support for a `path` reference to an on-disk storage (ex. `*.arrow`), a database connector...
+- We can also imagine support for a `path` reference to an on-disk storage (ex. `*.arrow`), a database connector...
 
 ### Iteration
 
-Training of iterative models typically involve the tracking of eval metric on out-of sample data. 
+Training of iterative models typically involve the tracking of eval metric on out-of-sample data. 
 This notably touch most prevalent Tabular ML models like XGBoost, LightGBM, CatBoost, EvoTrees as well as any neural network / deep learning model.
 
 Models that can be trained iteratively are identified with:
@@ -108,7 +108,7 @@ LeanAPI.fit!(model::LearnAPI.Model, dtrain, deval; verbosity, kwargs...)
 ```
 
 Example of `fit!` implementation to support Iterated training.
-In such scenario, ne need to input new data, as the model is trained on initialized datasets (ex. binnarized data, dataloaders...).
+In such scenario, ne need to input new data, as the model is trained on initialized datasets (ex. binarized data, data loaders...).
 Allows for LearnAPI higher level utility to perform adaptation to some mutable hyper-params during the training process. 
 
 ```julia
@@ -132,7 +132,7 @@ based on new input data.
 
 ## Notes
 
-There's no need to explicitly statuate on whether the arguments that allow the instantiation of a model are `hyper-parameters`, `hyper-params`, `config`, `strategy`.
+There's no need to explicitly rule on whether the arguments that allow the instantiation of a model are `hyper-parameters`, `hyper-params`, `config`, `strategy`.
 Any model developer can use their own prefer terminology, according to their own taste and domain preference without altering with usability of LearnAPI. 
 
 It can essentially come down to:
@@ -148,7 +148,7 @@ If model is iterable, and some hyper-params can be altered during the fitting pr
 In many applications, I'd argue that we don't want the original configuration (hyper-param) to be mutated, as by doing so, the trace is lost of how we got to the final state of the hypers. 
 I think it's desirable for the config / hyper-params that define the model constructor to represent the original snapshot that allows to fully reproduce a fit. 
 
-TBD: whether the above can add pain for implementation an hyper search algo? 
+TBD: whether the above can add pain for implementation a hyper search algo? 
 Since model instantiation should be cheap, and model initialization for iterative models like EvoTrees unavoidable, it seems reasonable to instantiate a new model each time. 
 May need to have helper mode to specify what hyper-params are searchable (not necessarily the same as the immutable ones, the later being specific to iterative models).
 
@@ -185,8 +185,7 @@ end
 ```
 
 Example of `fit!` implementation to support Iterated training.
-In such scenario, ne need to input new data, as the model is trained on initialized datasets (ex. binnarized data, dataloaders...).
-Allows for LearnAPI higher level utility to perform adaptation to some mutable hyper-params during the training process. 
+
 ```julia
 function fit!(m::EvoTree; kwargs...)
     if is_initialized(m)
