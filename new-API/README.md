@@ -84,12 +84,12 @@ LearnAPI.fit!(m::MyModel, (x_train, y_train))
 LearnAPI.fit!(m::MyModel, df::DataFrame)
 ```
 
-Having a single position arg to gold trainding allows to support various styles for passing in data:  
+Having a single position arg to refer to training data allows to support various styles for passing in data:  
 - single dataframe holding both features and target variables, and optionally weight and offset. Identification of variables can be performed through keyword argument (ex: feature_names = fnames::Vector{String}).
 - `(features_matrix, target_vector)` tuple.  
  a single argument position for training data
 - data loader: as used in neural network, notably through MLUtils's DataLoader
-
+- We can also imagine support support for a `path` reference to an on-disk storage (ex. `*.arrow`), a database connector...
 
 ### Iteration
 
@@ -132,7 +132,7 @@ based on new input data.
 
 ## Notes
 
-There's no need to explicitly statuate on wether that arguments that allow the instantiation of a model form `hyper-parameters`, `hyper-params`, `config`, `strategy`.
+There's no need to explicitly statuate on whether the arguments that allow the instantiation of a model are `hyper-parameters`, `hyper-params`, `config`, `strategy`.
 Any model developer can use their own prefer terminology, according to their own taste and domain preference without altering with usability of LearnAPI. 
 
 It can essentially come down to:
@@ -142,16 +142,15 @@ fit!(m, data)
 p = m(data)
 ```
 
-For actual implementation, that opens the opportunity for model implementation to rely on immutably hyper-params object if desired. 
-If model is iterable, and some hyper-params ca be altered during the fitting process, idea would be to have to implement a methods like: `list_mutable_hyper_params`, `set_hyper_param`, etc.
+For actual implementation, that opens the opportunity for model implementation to rely on immutable hyper-params structs if desired. 
+If model is iterable, and some hyper-params can be altered during the fitting process, idea would be to have to implement methods like: `list_mutable_hyper_params`, `set_hyper_param`, etc.
 
-In many application, I'd argue that we don't want the original configuration (hyper-param) to be mutated, as by doing so, the trace is lost of how we got to the final state of the hypers. 
+In many applications, I'd argue that we don't want the original configuration (hyper-param) to be mutated, as by doing so, the trace is lost of how we got to the final state of the hypers. 
 I think it's desirable for the config / hyper-params that define the model constructor to represent the original snapshot that allows to fully reproduce a fit. 
 
 TBD: whether the above can add pain for implementation an hyper search algo? 
 Since model instantiation should be cheap, and model initialization for iterative models like EvoTrees unavoidable, it seems reasonable to instantiate a new model each time. 
-May need to have helper mode to spacify what hyper-params are searchable (not necessarily the same as the mmutable ones, the later being specific to iterative models).
-
+May need to have helper mode to specify what hyper-params are searchable (not necessarily the same as the immutable ones, the later being specific to iterative models).
 
 ## Examples
 
@@ -217,7 +216,15 @@ function EvoTreeRegressor(; kw...)
 end
 ```
 
-Ideally, would only need a single constructor: `EvoTree(; kwargs...)`.
+Ideally, would only need a single constructor: `EvoTree(; kwargs...)`. Distinction between various flavors of `EvoTrees` could be handled through its parametric type. 
+Ex:
+
+```julia
+LearnAPI.is_regressor(::Type{EvoTrees{MSE}}) = true
+LearnAPI.is_regressor(::Type{EvoTrees{LogLoss}}) = true
+LearnAPI.is_classifier(::Type{EvoTrees{MSE}}) = false
+LearnAPI.is_classifier(::Type{EvoTrees{LogLoss}}) = true
+```
 
 ### Linear
 
