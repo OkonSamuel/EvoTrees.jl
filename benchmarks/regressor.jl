@@ -27,8 +27,8 @@ import CUDA
 #             for max_depth in [6, 11]
 
 df = DataFrame()
-
-for device in ["cpu", "gpu"]
+device = "gpu"
+for device in [device]
     for nobs in Int.([1e5, 1e6, 1e7])
         for nfeats in [10, 100]
             for max_depth in [6, 11]
@@ -71,17 +71,16 @@ for device in ["cpu", "gpu"]
                     :tree_method => tree_method, # hist/gpu_hist
                     :max_bin => 64,
                 )
-
                 @info "train"
                 dtrain = DMatrix(x_train, y_train)
                 watchlist = Dict("train" => DMatrix(x_train, y_train))
-                m_xgb = xgboost(dtrain; watchlist, nthread=nthreads, verbosity=0, eval_metric=metric_xgb, params_xgb...)
-                t_train_xgb = @elapsed m_xgb = xgboost(dtrain; watchlist, nthread=nthreads, verbosity=0, eval_metric=metric_xgb, params_xgb...)
-                # @btime m_xgb = xgboost($dtrain; watchlist, nthread=nthreads, verbosity=0, eval_metric = metric_xgb, params_xgb...);
+                # m_xgb = xgboost(dtrain; watchlist, nthread=nthreads, verbosity=0, eval_metric=metric_xgb, params_xgb...)
+                # t_train_xgb = @elapsed m_xgb = xgboost(dtrain; watchlist, nthread=nthreads, verbosity=0, eval_metric=metric_xgb, params_xgb...)
+                t_train_xgb = missing
                 @info "predict"
-                pred_xgb = XGBoost.predict(m_xgb, x_train)
-                t_infer_xgb = @elapsed pred_xgb = XGBoost.predict(m_xgb, x_train)
-                # @btime XGBoost.predict($m_xgb, $x_train);
+                # pred_xgb = XGBoost.predict(m_xgb, x_train)
+                # t_infer_xgb = @elapsed pred_xgb = XGBoost.predict(m_xgb, x_train)
+                t_infer_xgb = missing
 
                 # @info "lightgbm train:"
                 # m_gbm = LGBMRegression(
@@ -132,8 +131,6 @@ for device in ["cpu", "gpu"]
                     :max_bins => 64,
                     :rng => 123
                 )
-
-                @info "EvoTrees"
                 # @info "init"
                 # m_evo = EvoTreeRegressor(; evo_kw...)
                 # @time EvoTrees.init!(m_evo, (x_train, y_train); device);
@@ -171,5 +168,5 @@ for device in ["cpu", "gpu"]
     end
 end
 
-path = joinpath(@__DIR__, "regressor.csv")
+path = joinpath(@__DIR__, "regressor-$device.csv")
 CSV.write(path, df)
