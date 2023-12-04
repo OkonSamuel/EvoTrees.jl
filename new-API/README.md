@@ -230,3 +230,55 @@ LearnAPI.is_classifier(::Type{EvoTrees{LogLoss}}) = true
 ### Flux
 
 ### XGBoost
+
+## LearnAPI review
+
+Notes regarding the above design and the one from latesst [LearnAPI](https://juliaai.github.io/LearnAPI.jl/dev/)
+
+### predict
+
+Could the 3-arg `predict(model, LiteralTarget(), Xnew)` be changed to `predict(model, Xnew, proxy = LiteralTarget())`?
+
+I think from that having `predict(m, x_new)` is an expected behavior for the `predict` function. 
+By supporting this 2-arg version (where Literal Target is assumed), it likely covers a good share of use cases without adding compexity to the user, having to figure what are those target proxies are.
+
+### Obs
+
+Regarding [obs](https://juliaai.github.io/LearnAPI.jl/dev/obs/#Reference), I'm not clear about their role. 
+Is it more about specifying the ingestion rules for various data input forms? Or is it more about acting as a preprocessing/initialization step?
+
+I'm not clear it's desirable to have the full data representation (train + eval) within a common `data` container, which seems the approach taken here by LearnAPI. 
+For instance, when performing cross-validations, there may be more extensive data preprocessing involved, potentially of the form `preproc = fit_preproc(dtrain); predict(preproc, eval_data)`.
+So for sake of transparency and flexibility of the workflow, I see benefits in keeping the data splitting and preprocessing external to the model fitting process. 
+
+How would iterative model be handled? In particular, how would the `preds` from eval data be store in order to provide efficient early stopping mechanism?
+
+### Algo + fit vs fit!
+
+LearnAPI required function implementations: 
+ - predict
+ - obsfit
+ - obs (optional)
+
+And structs:
+- Algo: Ridge, EvoTreeRegressor
+- AlgoFitData / Model: RidgeFitted, EvoTree
+- AlgoData (optional): ex RidgeFitData, EvoTree.Cache?
+
+EvoML required function implementations:
+ - predict
+ - fit!
+
+And structs:
+- Model: Ridge / EvoTree
+
+### General design considerations
+
+I'm wondering whether merging the notion of Algorithm/Config/Hyper-params and fitted model into a single entity `model` could adress the opiniated debate on how to name each of these things. 
+For example: `model = EvoTreeRegressor(); fit!(model, data...)`.
+It may more likely render the model's struct to be mutable, but it doesn't bare the opportunity for that model struct to hold an immutable struct for the core params if needed. 
+The `minimize` function seems like nice general functionnality to handle situations where a model fitting procedure generates lots of cached / scratch data.
+
+Other positives of the latest LearnAPI proposal: 
+- no need to make Algo a subtype (eg: <: Deterministic). The traits approach looks like going in the right direction. 
+- Dropping the arbitrary distinction between supervised & non-supervised. Will likely ease the integration of data preprocessing in the framework as a form of inference of from some self-supervised model.
