@@ -274,11 +274,21 @@ And structs:
 
 ### General design considerations
 
-I'm wondering whether merging the notion of Algorithm/Config/Hyper-params and fitted model into a single entity `model` could adress the opiniated debate on how to name each of these things. 
+I'm wondering whether merging the notion of Algorithm/Config/Hyper-params and fitted model into a single entity `model` could address the opiniated debate on how to name each of these things. 
 For example: `model = EvoTreeRegressor(); fit!(model, data...)`.
 It may more likely render the model's struct to be mutable, but it doesn't bare the opportunity for that model struct to hold an immutable struct for the core params if needed. 
-The `minimize` function seems like nice general functionnality to handle situations where a model fitting procedure generates lots of cached / scratch data.
+The `minimize` function seems like nice general functionality to handle situations where a model fitting procedure generates lots of cached / scratch data.
 
 Other positives of the latest LearnAPI proposal: 
 - no need to make Algo a subtype (eg: <: Deterministic). The traits approach looks like going in the right direction. 
 - Dropping the arbitrary distinction between supervised & non-supervised. Will likely ease the integration of data preprocessing in the framework as a form of inference of from some self-supervised model.
+
+
+## Discussion takeaways - 2023-12-07
+
+- Makes sense to change LearnAPI's `predict` args order to `predict(m, x, proxy = LiteralTarget())`
+- The `obs` and `obsfit` may not be necessary, at least not if the input data format are actually supported by the algorithm.
+    - Post-note: should there be a more explicit definition of the type of data supported by the LearnAPI ecosystem? Ie. should it be limited to data where `Tables.istable() == true`?
+    - Need to clarify the support for non standard use cases where there are a mixture of floats and categorical features (could be simply handled as a Table?).
+- Having separate structs for a model's configuration/hyper-params/algo vs the fitted model is favored. As discussed in Slack threads, it still leaves lots of flexibility on how the fitted model is defined.
+- TODO: clarify how to deal with iterative model, both EvoTrees/XGBoost and NeuralNetwork. Need a design proposal for IterativeModel to avoid reinventing the wheel for all algo on their early stopping support, while accounting for boosted model specifics where the eval/out-of-sample prediction need to be cached to avoid overhead (don't want to predict from scratch for each new layer of the stack).
