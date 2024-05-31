@@ -4,7 +4,6 @@ using CSV
 using Statistics
 using StatsBase: sample
 using XGBoost
-# using LightGBM
 using EvoTrees
 using BenchmarkTools
 using Random: seed!
@@ -18,8 +17,9 @@ import CUDA
 # desktop | 1e6 | depth 11 | cpu: 31s gpu: 50 sec  | xgboost cpu: 26s
 # desktop | 10e6 | depth 11 | cpu 200s gpu: 80 sec | xgboost cpu: 267s
 
-#threads
-# laptop depth 6: 12.717845 seconds (2.08 M allocations: 466.228 MiB)
+### gpu-hist
+# desktop | 1e6 | depth 11 | cpu: Xs gpu: Xs  | xgboost cpu: Xs
+# desktop | 10e6 | depth 11 | cpu Xs gpu: Xs | xgboost cpu: Xs
 
 # for device in ["cpu", "gpu"]
 #     for nobs in Int.([1e5, 1e6, 1e7])

@@ -47,7 +47,7 @@ end
 
 function predict(::EvoTreeClassifier, fitresult, A)
   pred = predict(fitresult, A)
-  return MMI.UnivariateFinite(fitresult.info[:target_levels], pred, pool=missing)
+  return MMI.UnivariateFinite(fitresult.info[:target_levels], pred, pool=missing, ordered=fitresult.info[:target_isordered])
 end
 
 function predict(::EvoTreeCount, fitresult, A)
@@ -119,17 +119,6 @@ MMI.metadata_model(
   path="EvoTrees.EvoTreeCount",
 )
 
-# MMI.metadata_model(
-#   EvoTreeGaussian,
-#   input_scitype=Union{
-#     MMI.Table(MMI.Continuous, MMI.Count, MMI.OrderedFactor, MMI.Multiclass),
-#     AbstractMatrix{MMI.Continuous},
-#   },
-#   target_scitype=AbstractVector{<:MMI.Continuous},
-#   weights=true,
-#   path="EvoTrees.EvoTreeGaussian",
-# )
-
 MMI.metadata_model(
   EvoTreeMLE,
   input_scitype=Union{
@@ -155,7 +144,7 @@ A model type for constructing a EvoTreeRegressor, based on [EvoTrees.jl](https:/
   - `:tweedie`
   - `:quantile`
   - `:l1`
-- `nrounds=10`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
+- `nrounds=100`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
 - `eta=0.1`:              Learning rate. Each tree raw predictions are scaled by `eta` prior to be added to the stack of predictions. Must be > 0.
   A lower `eta` results in slower learning, requiring a higher `nrounds` but typically improves model performance.   
 - `L2::T=0.0`:            L2 regularization factor on aggregate gain. Must be >= 0. Higher L2 can result in a more robust model.
@@ -166,13 +155,13 @@ A model type for constructing a EvoTreeRegressor, based on [EvoTrees.jl](https:/
                             - `:l1`: weighting parameters to positive vs negative residuals.
                                   - Positive residual weights = `alpha`
                                   - Negative residual weights = `(1 - alpha)`
-- `max_depth=5`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
+- `max_depth=6`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
   A complete tree of depth N contains `2^(N - 1)` terminal leaves and `2^(N - 1) - 1` split nodes.
   Compute cost is proportional to `2^max_depth`. Typical optimal values are in the 3 to 9 range.
 - `min_weight=1.0`:       Minimum weight needed in a node to perform a split. Matches the number of observations by default or the sum of weights as provided by the `weights` vector. Must be > 0.
 - `rowsample=1.0`:        Proportion of rows that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
 - `colsample=1.0`:        Proportion of columns / features that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
-- `nbins=32`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
+- `nbins=64`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
 - `monotone_constraints=Dict{Int, Int}()`: Specify monotonic constraints using a dict where the key is the feature index and the value the applicable constraint (-1=decreasing, 0=none, 1=increasing). 
   Only `:linear`, `:logistic`, `:gamma` and `tweedie` losses are supported at the moment.
 - `tree_type="binary"`    Tree structure to be used. One of:
@@ -280,19 +269,19 @@ EvoTreeClassifier is used to perform multi-class classification, using cross-ent
 
 # Hyper-parameters
 
-- `nrounds=10`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
+- `nrounds=100`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
 - `eta=0.1`:              Learning rate. Each tree raw predictions are scaled by `eta` prior to be added to the stack of predictions. Must be > 0.
   A lower `eta` results in slower learning, requiring a higher `nrounds` but typically improves model performance.  
 - `L2::T=0.0`:            L2 regularization factor on aggregate gain. Must be >= 0. Higher L2 can result in a more robust model.
 - `lambda::T=0.0`:        L2 regularization factor on individual gain. Must be >= 0. Higher lambda can result in a more robust model.
 - `gamma::T=0.0`:         Minimum gain improvement needed to perform a node split. Higher gamma can result in a more robust model. Must be >= 0.
-- `max_depth=5`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
+- `max_depth=6`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
   A complete tree of depth N contains `2^(N - 1)` terminal leaves and `2^(N - 1) - 1` split nodes.
   Compute cost is proportional to `2^max_depth`. Typical optimal values are in the 3 to 9 range.
 - `min_weight=1.0`:       Minimum weight needed in a node to perform a split. Matches the number of observations by default or the sum of weights as provided by the `weights` vector. Must be > 0.
 - `rowsample=1.0`:        Proportion of rows that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
 - `colsample=1.0`:        Proportion of columns / features that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
-- `nbins=32`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
+- `nbins=64`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
 - `tree_type="binary"`    Tree structure to be used. One of:
   - `binary`:       Each node of a tree is grown independently. Tree are built depthwise until max depth is reach or if min weight or gain (see `gamma`) stops further node splits.  
   - `oblivious`:    A common splitting condition is imposed to all nodes of a given depth. 
@@ -405,19 +394,19 @@ EvoTreeCount is used to perform Poisson probabilistic regression on count target
 
 # Hyper-parameters
 
-- `nrounds=10`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
+- `nrounds=100`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
 - `eta=0.1`:              Learning rate. Each tree raw predictions are scaled by `eta` prior to be added to the stack of predictions. Must be > 0.
   A lower `eta` results in slower learning, requiring a higher `nrounds` but typically improves model performance.  
 - `L2::T=0.0`:            L2 regularization factor on aggregate gain. Must be >= 0. Higher L2 can result in a more robust model.
 - `lambda::T=0.0`:        L2 regularization factor on individual gain. Must be >= 0. Higher lambda can result in a more robust model.
 - `gamma::T=0.0`:         Minimum gain imprvement needed to perform a node split. Higher gamma can result in a more robust model.
-- `max_depth=5`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
+- `max_depth=6`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
   A complete tree of depth N contains `2^(N - 1)` terminal leaves and `2^(N - 1) - 1` split nodes.
   Compute cost is proportional to 2^max_depth. Typical optimal values are in the 3 to 9 range.
 - `min_weight=1.0`:       Minimum weight needed in a node to perform a split. Matches the number of observations by default or the sum of weights as provided by the `weights` vector. Must be > 0.
 - `rowsample=1.0`:        Proportion of rows that are sampled at each iteration to build the tree. Should be `]0, 1]`.
 - `colsample=1.0`:        Proportion of columns / features that are sampled at each iteration to build the tree. Should be `]0, 1]`.
-- `nbins=32`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
+- `nbins=64`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
 - `monotone_constraints=Dict{Int, Int}()`: Specify monotonic constraints using a dict where the key is the feature index and the value the applicable constraint (-1=decreasing, 0=none, 1=increasing).
 - `tree_type="binary"`    Tree structure to be used. One of:
   - `binary`:       Each node of a tree is grown independently. Tree are built depthwise until max depth is reach or if min weight or gain (see `gamma`) stops further node splits.  
@@ -673,19 +662,19 @@ EvoTreeMLE performs maximum likelihood estimation. Assumed distribution is speci
 `loss=:gaussian`:         Loss to be be minimized during training. One of:
   - `:gaussian` / `:gaussian_mle`
   - `:logistic` / `:logistic_mle`
-- `nrounds=10`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
+- `nrounds=100`:           Number of rounds. It corresponds to the number of trees that will be sequentially stacked. Must be >= 1.
 - `eta=0.1`:              Learning rate. Each tree raw predictions are scaled by `eta` prior to be added to the stack of predictions. Must be > 0.
   A lower `eta` results in slower learning, requiring a higher `nrounds` but typically improves model performance.  
 - `L2::T=0.0`:            L2 regularization factor on aggregate gain. Must be >= 0. Higher L2 can result in a more robust model.
 - `lambda::T=0.0`:        L2 regularization factor on individual gain. Must be >= 0. Higher lambda can result in a more robust model.
 - `gamma::T=0.0`:         Minimum gain imprvement needed to perform a node split. Higher gamma can result in a more robust model. Must be >= 0.
-- `max_depth=5`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
+- `max_depth=6`:          Maximum depth of a tree. Must be >= 1. A tree of depth 1 is made of a single prediction leaf.
   A complete tree of depth N contains `2^(N - 1)` terminal leaves and `2^(N - 1) - 1` split nodes.
   Compute cost is proportional to 2^max_depth. Typical optimal values are in the 3 to 9 range.
 - `min_weight=8.0`:       Minimum weight needed in a node to perform a split. Matches the number of observations by default or the sum of weights as provided by the `weights` vector. Must be > 0.
 - `rowsample=1.0`:        Proportion of rows that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
 - `colsample=1.0`:        Proportion of columns / features that are sampled at each iteration to build the tree. Should be in `]0, 1]`.
-- `nbins=32`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
+- `nbins=64`:             Number of bins into which each feature is quantized. Buckets are defined based on quantiles, hence resulting in equal weight bins. Should be between 2 and 255.
 - `monotone_constraints=Dict{Int, Int}()`: Specify monotonic constraints using a dict where the key is the feature index and the value the applicable constraint (-1=decreasing, 0=none, 1=increasing). 
   !Experimental feature: note that for MLE regression, constraints may not be enforced systematically.
 - `tree_type="binary"`    Tree structure to be used. One of:
@@ -797,52 +786,3 @@ preds = predict_median(mach, X)
 ```
 """
 EvoTreeMLE
-
-# function MLJ.clean!(model::EvoTreeRegressor)
-#     warning = ""
-#     if model.nrounds < 1
-#         warning *= "Need nrounds ≥ 1. Resetting nrounds=1. "
-#         model.nrounds = 1
-#     end
-#     if model.lambda < 0
-#         warning *= "Need lambda ≥ 0. Resetting lambda=0. "
-#         model.lambda = 0.0
-#     end
-#     if model.gamma < 0
-#         warning *= "Need gamma ≥ 0. Resetting gamma=0. "
-#         model.gamma = 0.0
-#     end
-#     if model.η <= 0
-#         warning *= "Need η > 0. Resetting η=0.001. "
-#         model.η = 0.001
-#     end
-#     if model.max_depth < 1
-#         warning *= "Need max_depth ≥ 0. Resetting max_depth=0. "
-#         model.max_depth = 1
-#     end
-#     if model.min_weight < 0
-#         warning *= "Need min_weight ≥ 0. Resetting min_weight=0. "
-#         model.min_weight = 0.0
-#     end
-#     if model.rowsample < 0
-#         warning *= "Need rowsample ≥ 0. Resetting rowsample=0. "
-#         model.rowsample = 0.0
-#     end
-#     if model.rowsample > 1
-#         warning *= "Need rowsample <= 1. Resetting rowsample=1. "
-#         model.rowsample = 1.0
-#     end
-#     if model.colsample < 0
-#         warning *= "Need colsample ≥ 0. Resetting colsample=0. "
-#         model.colsample = 0.0
-#     end
-#     if model.colsample > 1
-#         warning *= "Need colsample <= 1. Resetting colsample=1. "
-#         model.colsample = 1.0
-#     end
-#     if model.nbins > 250
-#         warning *= "Need nbins <= 250. Resetting nbins=250. "
-#         model.nbins = 250
-#     end
-#     return warning
-# end

@@ -12,6 +12,7 @@ function EvoTrees.init_core!(m::EvoTrees.EvoTree, ::Type{EvoTrees.GPU}, data, fn
     T = Float32
 
     target_levels = nothing
+    target_isordered = false
     if L == EvoTrees.Logistic
         @assert eltype(y) <: Real && minimum(y) >= 0 && maximum(y) <= 1
         K = 1
@@ -25,12 +26,13 @@ function EvoTrees.init_core!(m::EvoTrees.EvoTree, ::Type{EvoTrees.GPU}, data, fn
         μ = fill(log(EvoTrees.mean(y)), 1)
         !isnothing(offset) && (offset .= log.(offset))
     elseif L == EvoTrees.MLogLoss
-        if eltype(y) <: EvoTrees.CategoricalValue
-            target_levels = EvoTrees.CategoricalArrays.levels(y)
-            y = UInt32.(EvoTrees.CategoricalArrays.levelcode.(y))
-        elseif eltype(y) <: Integer || eltype(y) <: Bool || eltype(y) <: String || eltype(y) <: Char
-            target_levels = sort(unique(y))
-            yc = EvoTrees.CategoricalVector(y, levels=target_levels)
+        if eltype(y_train) <: EvoTrees.CategoricalValue
+            target_levels = EvoTrees.CategoricalArrays.levels(y_train)
+            target_isordered = isordered(y_train)
+            y = UInt32.(EvoTrees.CategoricalArrays.levelcode.(y_train))
+        elseif eltype(y_train) <: Integer || eltype(y_train) <: Bool || eltype(y_train) <: String || eltype(y_train) <: Char
+            target_levels = sort(unique(y_train))
+            yc = EvoTrees.CategoricalVector(y_train, levels=target_levels)
             y = UInt32.(EvoTrees.CategoricalArrays.levelcode.(yc))
         else
             @error "Invalid target eltype: $(eltype(y))"
