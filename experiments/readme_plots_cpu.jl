@@ -82,7 +82,7 @@ mean((pred_eval_linear .- y_eval) .^ 2)
 # linear weighted
 params1 = EvoTreeRegressor(;
     T=Float64,
-    loss=:linear,
+    loss=:mse,
     nrounds=500,
     nbins=64,
     lambda=0.1,
