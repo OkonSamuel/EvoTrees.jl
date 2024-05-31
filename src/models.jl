@@ -32,7 +32,7 @@ _type2loss(L::Type) = _type2loss_dict[L]
 mk_rng(rng::AbstractRNG) = rng
 mk_rng(int::Integer) = Random.MersenneTwister(int)
 
-mutable struct EvoTreeRegressor{L<:ModelType} <: MMI.Deterministic
+mutable struct EvoTreeRegressor{L<:ModelType}
     nrounds::Int
     L2::Float64
     lambda::Float64
@@ -126,7 +126,7 @@ function EvoTreeRegressor{L}(; kwargs...) where {L}
     EvoTreeRegressor(; loss=_type2loss(L), kwargs...)
 end
 
-mutable struct EvoTreeCount{L<:ModelType} <: MMI.Probabilistic
+mutable struct EvoTreeCount{L<:ModelType}
     nrounds::Int
     L2::Float64
     lambda::Float64
@@ -196,7 +196,7 @@ function EvoTreeCount{L}(; kwargs...) where {L}
     EvoTreeCount(; kwargs...)
 end
 
-mutable struct EvoTreeClassifier{L<:ModelType} <: MMI.Probabilistic
+mutable struct EvoTreeClassifier{L<:ModelType}
     nrounds::Int
     L2::Float64
     lambda::Float64
@@ -263,7 +263,7 @@ function EvoTreeClassifier{L}(; kwargs...) where {L}
     EvoTreeClassifier(; kwargs...)
 end
 
-mutable struct EvoTreeMLE{L<:ModelType} <: MMI.Probabilistic
+mutable struct EvoTreeMLE{L<:ModelType}
     nrounds::Int
     L2::Float64
     lambda::Float64
@@ -351,7 +351,7 @@ function EvoTreeMLE{L}(; kwargs...) where {L}
 end
 
 
-mutable struct EvoTreeGaussian{L<:ModelType} <: MMI.Probabilistic
+mutable struct EvoTreeGaussian{L<:ModelType}
     nrounds::Int
     L2::Float64
     lambda::Float64

@@ -16,7 +16,7 @@ using Test
         include("missings.jl")
     end
 
-    @testset "MLJ" begin
-        include("MLJ.jl")
-    end
+    # @testset "MLJ" begin
+    #     include("MLJ.jl")
+    # end
 end

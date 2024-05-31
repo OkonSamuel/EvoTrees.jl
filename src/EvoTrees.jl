@@ -23,9 +23,9 @@ using BSON
 using NetworkLayout
 using RecipesBase
 
-using MLJModelInterface
-import MLJModelInterface as MMI
-import MLJModelInterface: fit, update, predict, schema
+# using MLJModelInterface
+# import MLJModelInterface as MMI
+# import MLJModelInterface: fit, update, predict, schema
 import Base: convert
 
 include("models.jl")
@@ -46,7 +46,7 @@ end
 include("callback.jl")
 include("importance.jl")
 include("plot.jl")
-include("MLJ.jl")
+# include("MLJ.jl")
 
 function save(model::EvoTree, path)
     BSON.bson(path, Dict(:model => model))
