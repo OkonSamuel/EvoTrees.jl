@@ -7,11 +7,14 @@ using Statistics: mean
 using CategoricalArrays
 using Random
 
-using LearnAPI: fit, predict
-
+using LearnAPI: constructor
 # check that EvoTreesLearnAPIExt is properly loaded and learnAP's fit/predict methods are overloaded
 fit()
 predict()
+
+# test constructor - need to fix the parametric type: changes from LogLoss to MSE
+algorithm = EvoTreeRegressor(loss=:logistic)
+constructor(algorithm)(lambda=0.05)
 
 df = MLDatasets.BostonHousing().dataframe
 Random.seed!(123)

@@ -8,6 +8,9 @@ import LearnAPI: constructor, fit, predict
 LearnAPI.constructor(::EvoTrees.EvoTreeRegressor) = EvoTrees.EvoTreeRegressor
 # LearnAPI.constructor(::EvoTrees.EvoTypes) = EvoTrees.EvoTypes
 
+# TODO: EvoTree model struct doesn't contain its "algorithm" / "hyper-params" / "config" at the moment
+LearnAPI.algorithm(model::EvoTree) = model.config
+
 function LearnAPI.fit()
     @info "EvoTreesLearnAPIExt fit"
 end
