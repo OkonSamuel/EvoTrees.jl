@@ -3,7 +3,10 @@ module EvoTreesLearnAPIExt
 using EvoTrees
 
 using LearnAPI
-import LearnAPI: fit, predict
+import LearnAPI: constructor, fit, predict
+
+LearnAPI.constructor(::EvoTrees.EvoTreeRegressor) = EvoTrees.EvoTreeRegressor
+# LearnAPI.constructor(::EvoTrees.EvoTypes) = EvoTrees.EvoTypes
 
 function LearnAPI.fit()
     @info "EvoTreesLearnAPIExt fit"
