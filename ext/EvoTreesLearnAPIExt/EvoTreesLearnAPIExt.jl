@@ -5,6 +5,7 @@ using EvoTrees
 using LearnAPI
 import LearnAPI: constructor, fit, predict
 
+# TODO: test constructor - need to fix the parametric type: changes from LogLoss to MSE
 LearnAPI.constructor(::EvoTrees.EvoTreeRegressor) = EvoTrees.EvoTreeRegressor
 # LearnAPI.constructor(::EvoTrees.EvoTypes) = EvoTrees.EvoTypes
 
