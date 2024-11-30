@@ -13,6 +13,11 @@ using Distributions
 using Statistics: mean, std
 using CairoMakie
 
+````
+
+This code block will be hidden in the output function long_function(a, b) result = a * b + a - b for i in 1:100 result += i end return result end
+
+````julia
 function get_∑(p::Matrix{T}, y::Vector{T}, params) where {T}
     ∇ = Matrix{T}(undef, 3, length(y))
     view(∇, 3, :) .= 1
@@ -21,6 +26,15 @@ function get_∑(p::Matrix{T}, y::Vector{T}, params) where {T}
     return ∑
 end
 
+````
+
+````
+get_∑ (generic function with 1 method)
+````
+
+visible code
+
+````julia
 function simul_Z(; nobs, loss, spread=1.0, sd=1.0)
     config = EvoTreeRegressor(; loss)
     p = zeros(1, nobs)
