@@ -42,10 +42,10 @@ std(y; corrected=false)
 #   - linear gain with nobs
 #   - invariant to sigma
 ################################################
-credV1A = EvoTreeRegressor(loss=:credV1A)
-∑ = get_∑(p, y, credV1A)
-Z = EvoTrees._get_cred(credV1A, ∑)
-gain = EvoTrees.get_gain(credV1A, ∑)
+config = EvoTreeRegressor(loss=:credV1A)
+∑ = get_∑(p, y, config)
+Z = EvoTrees._get_cred(config, ∑)
+gain = EvoTrees.get_gain(config, ∑)
 
 nobs = 100
 sd = 1.0
