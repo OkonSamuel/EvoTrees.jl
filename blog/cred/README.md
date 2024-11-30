@@ -118,7 +118,7 @@ end
 get_cred_figure (generic function with 1 method)
 ````
 
-## Credibility-based gains
+## MSE gains
 
 ````julia
 loss = :mse
@@ -132,16 +132,25 @@ save(joinpath(@__DIR__, "assets", "dist-mse-2.png"), f)
 
 data = get_data(; loss, nobs=10000, spread=1.0, sd=1.0, lambda=0.0)
 f = get_dist_figure(data)
-save(joinpath(@__DIR__, "assets", "dist-mse-3.png"), f)
-````
+save(joinpath(@__DIR__, "assets", "dist-mse-3.png"), f);
 
-````
-CairoMakie.Screen{IMAGE}
+loss = :mse
+data = get_data(; loss, nobs=10, spread=1.0, sd=0.1, lambda=0.0)
+f = get_dist_figure(data)
+save(joinpath(@__DIR__, "assets", "dist-mse-1B.png"), f)
 
+data = get_data(; loss, nobs=100, spread=1.0, sd=0.1, lambda=0.0)
+f = get_dist_figure(data)
+save(joinpath(@__DIR__, "assets", "dist-mse-2B.png"), f)
+
+data = get_data(; loss, nobs=10000, spread=1.0, sd=0.1, lambda=0.0)
+f = get_dist_figure(data)
+save(joinpath(@__DIR__, "assets", "dist-mse-3B.png"), f);
 ````
 
 | ![](assets/dist-mse-1.png) | ![](assets/dist-mse-2.png) | ![](assets/dist-mse-3.png) |
 |:----------------------:|:----------------------:|:----------------------:|
+| ![](assets/dist-mse-1B.png) | ![](assets/dist-mse-2B.png) | ![](assets/dist-mse-3B.png) |
 
 ## Credibility-based gains
 
@@ -157,12 +166,7 @@ save(joinpath(@__DIR__, "assets", "dist-cred-2.png"), f)
 
 data = get_data(; loss, nobs=10000, spread=1.0, sd=1.0, lambda=0.0)
 f = get_dist_figure(data)
-save(joinpath(@__DIR__, "assets", "dist-cred-3.png"), f)
-````
-
-````
-CairoMakie.Screen{IMAGE}
-
+save(joinpath(@__DIR__, "assets", "dist-cred-3.png"), f);
 ````
 
 | ![](assets/dist-cred-1.png) | ![](assets/dist-cred-2.png) | ![](assets/dist-cred-3.png) |
@@ -184,7 +188,7 @@ get_cred_figure(; loss=:credV2B, sd, nobs_list, spread_list)
 
 f1 = get_cred_figure(; loss=:credV1A, sd, nobs_list, spread_list)
 f2 = get_cred_figure(; loss=:credV2A, sd, nobs_list, spread_list)
-save(joinpath(@__DIR__, "test.png"), f1)
+save(joinpath(@__DIR__, "assets", "heatmap-cred-1.png"), f1);
 f1
 ````
 ![](README-12.png)
