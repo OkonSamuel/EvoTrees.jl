@@ -8,6 +8,7 @@ The motivation for this experiment stems from potential shortfalls in approach u
 The idea is for the *gain* to capture the varying level of uncertainty associated with the observations associated within a tree-split candidate.
 =#
 
+#hide
 ## compare mse vs cred based metrics
 using EvoTrees
 using EvoTrees: get_gain, _get_cred
@@ -104,7 +105,6 @@ function get_cred_figure(;
 
     for (idx, nobs) in enumerate(nobs_list)
         for (idy, spread) in enumerate(spread_list)
-            @info "nobs: $nobs | spread: $spread"
             z = simul_Z(; loss, nobs, spread, sd)
             matrix[idx, idy] = z
         end
@@ -147,18 +147,19 @@ f = get_dist_figure(data)
 save(joinpath(@__DIR__, "assets", "dist-mse-3B.png"), f);
 
 #=
-| ![](assets/dist-mse-1.png) | ![](assets/dist-mse-2.png) | ![](assets/dist-mse-3.png) |
-|:----------------------:|:----------------------:|:----------------------:|
-| ![](assets/dist-mse-1B.png) | ![](assets/dist-mse-2B.png) | ![](assets/dist-mse-3B.png) |
+| ![](assets/dist-mse-2.png) | ![](assets/dist-mse-3.png) |
+|:----------------------:|:----------------------:|
+| ![](assets/dist-mse-2B.png) | ![](assets/dist-mse-3B.png) |
 =#
 
 #=
 ## Credibility-based gains
 =#
 loss = :credV1A
-data = get_data(; loss, nobs=10, spread=1.0, sd=1.0, lambda=0.0)
-f = get_dist_figure(data)
-save(joinpath(@__DIR__, "assets", "dist-cred-1.png"), f)
+
+# data = get_data(; loss, nobs=10, spread=1.0, sd=1.0, lambda=0.0)
+# f = get_dist_figure(data)
+# save(joinpath(@__DIR__, "assets", "dist-cred-1.png"), f)
 
 data = get_data(; loss, nobs=100, spread=1.0, sd=1.0, lambda=0.0)
 f = get_dist_figure(data)
@@ -168,9 +169,23 @@ data = get_data(; loss, nobs=10000, spread=1.0, sd=1.0, lambda=0.0)
 f = get_dist_figure(data)
 save(joinpath(@__DIR__, "assets", "dist-cred-3.png"), f);
 
+
+# data = get_data(; loss, nobs=10, spread=1.0, sd=0.1, lambda=0.0)
+# f = get_dist_figure(data)
+# save(joinpath(@__DIR__, "assets", "dist-cred-1B.png"), f)
+
+data = get_data(; loss, nobs=100, spread=1.0, sd=0.1, lambda=0.0)
+f = get_dist_figure(data)
+save(joinpath(@__DIR__, "assets", "dist-cred-2B.png"), f)
+
+data = get_data(; loss, nobs=10000, spread=1.0, sd=0.1, lambda=0.0)
+f = get_dist_figure(data)
+save(joinpath(@__DIR__, "assets", "dist-cred-3B.png"), f);
+
 #=
-| ![](assets/dist-cred-1.png) | ![](assets/dist-cred-2.png) | ![](assets/dist-cred-3.png) |
-|:----------------------:|:----------------------:|:----------------------:|
+| ![](assets/dist-cred-2.png) | ![](assets/dist-cred-3.png) |
+|:----------------------:|:----------------------:|
+| ![](assets/dist-cred-2B.png) | ![](assets/dist-cred-3B.png) |
 =#
 
 #=
@@ -181,13 +196,19 @@ nobs_list = Int.(10.0 .^ (0:6))
 nobs_list[1] = 2
 spread_list = [0.001, 0.01, 0.1, 0.5, 1, 2, 10, 100]
 
-get_cred_figure(; loss=:credV1A, sd, nobs_list, spread_list)
-get_cred_figure(; loss=:credV2A, sd, nobs_list, spread_list)
+f = get_cred_figure(; loss=:credV1A, sd, nobs_list, spread_list)
+save(joinpath(@__DIR__, "assets", "heatmap-credV1A.png"), f);
+f = get_cred_figure(; loss=:credV2A, sd, nobs_list, spread_list)
+save(joinpath(@__DIR__, "assets", "heatmap-credV2A.png"), f);
 
-get_cred_figure(; loss=:credV1B, sd, nobs_list, spread_list)
-get_cred_figure(; loss=:credV2B, sd, nobs_list, spread_list)
+f = get_cred_figure(; loss=:credV1B, sd, nobs_list, spread_list)
+save(joinpath(@__DIR__, "assets", "heatmap-credV1B.png"), f);
+f = get_cred_figure(; loss=:credV2B, sd, nobs_list, spread_list)
+save(joinpath(@__DIR__, "assets", "heatmap-credV2B.png"), f);
 
-f1 = get_cred_figure(; loss=:credV1A, sd, nobs_list, spread_list)
-f2 = get_cred_figure(; loss=:credV2A, sd, nobs_list, spread_list)
-save(joinpath(@__DIR__, "assets", "heatmap-cred-1.png"), f1);
-f1
+#=
+| ![](assets/heatmap-credV1A.png) | ![](assets/heatmap-credV2A.png) |
+|:----------------------:|:----------------------:|
+| ![](assets/heatmap-credV1B.png) | ![](assets/heatmap-credV2B.png) |
+=#
+
