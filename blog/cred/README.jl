@@ -17,6 +17,7 @@ using Distributions
 using Statistics: mean, std
 using CairoMakie
 
+#hide
 function get_∑(p::Matrix{T}, y::Vector{T}, params) where {T}
     ∇ = Matrix{T}(undef, 3, length(y))
     view(∇, 3, :) .= 1
