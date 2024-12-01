@@ -3,7 +3,7 @@
 include(joinpath(@__DIR__, "utils.jl")); #hide
 
 #=
-The motivation for this experiment stems from potential shortfalls in approach used in gradient-boosted trees to assess the best split potential. 
+> The motivation for this experiment stems from potential shortfalls in approach used in gradient-boosted trees to assess the best split potential. 
 =#
 
 #=
@@ -43,6 +43,7 @@ The original inspiration comes from credibility theory, a foundational notion in
 Key concept is that the credibility associated with a set of observations is driven by the relative effect of 2 components:
  - **Variance of the Hypothetical Means (VHM)**: if large differences between candidates are expected, then a greater credibility will be assigned to that candidate.
  - **Expected Value of the Process Variance (EVPV)**: if the data generation process of a given candidate has a large volatility, a  smaller credibility will be assigned.
+
 =#
 
 loss = :credV1A
@@ -62,9 +63,16 @@ save(joinpath(@__DIR__, "assets", "dist-cred-3B.png"), f);#hide
 =#
 
 #=
-credibility figures
-=#
+## Credibility figures
 
+Four credibility variations are being tested:
+ - **credV1A**: `VHM / VHM + EVPV`
+ - **credV1B**: `VHM / VHM + EVPV / N`
+ - **credV2A**: `sqrt(VHM) / sqrt(VHM) + sqrt(EVPV)`
+ - **credV2B**: `sqrt(VHM) / sqrt(VHM) + sqrt(EVPV / N)`
+
+The figures below present the credibility factor associated with different spreads and number observations
+=#
 
 ## simulation grid
 sd = 1.0
@@ -87,3 +95,22 @@ save(joinpath(@__DIR__, "assets", "heatmap-credV2B.png"), f);#hide
 | ![](assets/heatmap-credV1B.png) | ![](assets/heatmap-credV2B.png) |
 =#
 
+## simulation grid
+sd_list = [0.1, 0.2, 0.5, 1.0, 2.0, 10.0]
+nobs = 1000
+spread_list = [0.001, 0.01, 0.1, 0.5, 1, 2, 10, 100]
+
+f = get_cred_figureB(; loss=:credV1A, sd, nobs, spread_list)#hide
+save(joinpath(@__DIR__, "assets", "heatmapB-credV1A.png"), f);#hide
+f = get_cred_figureB(; loss=:credV2A, sd, nobs, spread_list)#hide
+save(joinpath(@__DIR__, "assets", "heatmapB-credV2A.png"), f);#hide
+f = get_cred_figureB(; loss=:credV1B, sd, nobs, spread_list)#hide
+save(joinpath(@__DIR__, "assets", "heatmapB-credV1B.png"), f);#hide
+f = get_cred_figureB(; loss=:credV2B, sd, nobs, spread_list)#hide
+save(joinpath(@__DIR__, "assets", "heatmapB-credV2B.png"), f);#hide
+
+#=
+| ![](assets/heatmapB-credV1A.png) | ![](assets/heatmapB-credV2A.png) |
+|:----------------------:|:----------------------:|
+| ![](assets/heatmapB-credV1B.png) | ![](assets/heatmapB-credV2B.png) |
+=#

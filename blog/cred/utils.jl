@@ -109,3 +109,27 @@ function get_cred_figure(;
     Colorbar(fig[2, 1], heat; vertical=false)
     return fig
 end
+
+function get_cred_figureB(;
+    loss,
+    nobs,
+    sd_list,
+    spread_list)
+
+    xticks = string.(sd_list)
+    yticks = string.(spread_list)
+
+    matrix = zeros(length(sd_list), length(spread_list))
+
+    for (idx, sd) in enumerate(sd_list)
+        for (idy, spread) in enumerate(spread_list)
+            z = simul_Z(; loss, nobs, spread, sd)
+            matrix[idx, idy] = z
+        end
+    end
+    fig = Figure()
+    ax = Axis(fig[1, 1]; title="$(string(loss)) | nobs: $nobs", xlabel="sd", ylabel="spread", xticks=(1:length(xticks), xticks), yticks=(1:length(yticks), yticks))
+    heat = heatmap!(ax, matrix)
+    Colorbar(fig[2, 1], heat; vertical=false)
+    return fig
+end
