@@ -97,16 +97,16 @@ save(joinpath(@__DIR__, "assets", "heatmap-credV2B.png"), f);#hide
 
 ## simulation grid
 sd_list = [0.1, 0.2, 0.5, 1.0, 2.0, 10.0]
-nobs = 1000
+nobs = 100
 spread_list = [0.001, 0.01, 0.1, 0.5, 1, 2, 10, 100]
 
-f = get_cred_figureB(; loss=:credV1A, sd, nobs, spread_list)#hide
+f = get_cred_figureB(; loss=:credV1A, nobs, sd_list, spread_list)#hide
 save(joinpath(@__DIR__, "assets", "heatmapB-credV1A.png"), f);#hide
-f = get_cred_figureB(; loss=:credV2A, sd, nobs, spread_list)#hide
+f = get_cred_figureB(; loss=:credV2A, nobs, sd_list, spread_list)#hide
 save(joinpath(@__DIR__, "assets", "heatmapB-credV2A.png"), f);#hide
-f = get_cred_figureB(; loss=:credV1B, sd, nobs, spread_list)#hide
+f = get_cred_figureB(; loss=:credV1B, nobs, sd_list, spread_list)#hide
 save(joinpath(@__DIR__, "assets", "heatmapB-credV1B.png"), f);#hide
-f = get_cred_figureB(; loss=:credV2B, sd, nobs, spread_list)#hide
+f = get_cred_figureB(; loss=:credV2B, nobs, sd_list, spread_list)#hide
 save(joinpath(@__DIR__, "assets", "heatmapB-credV2B.png"), f);#hide
 
 #=

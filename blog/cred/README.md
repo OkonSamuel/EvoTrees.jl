@@ -1,7 +1,7 @@
 # Exploring a credibility-based approach for tree-gain estimation
 
 
-The motivation for this experiment stems from potential shortfalls in approach used in gradient-boosted trees to assess the best split potential.
+> The motivation for this experiment stems from potential shortfalls in approach used in gradient-boosted trees to assess the best split potential.
 
 The figures below illustrate the behavior of vanilla gradient-based approach using a mean-squarred error (MSE) loss.
 The 2 colors represent the observations belonging to the left and right children.
@@ -36,7 +36,15 @@ loss = :credV1A
 |:----------------------:|:----------------------:|
 | ![](assets/dist-cred-2B.png) | ![](assets/dist-cred-3B.png) |
 
-credibility figures
+## Credibility figures
+
+Four credibility variations are being tested:
+ - **credV1A**: `VHM / VHM + EVPV`
+ - **credV1B**: `VHM / VHM + EVPV / N`
+ - **credV2A**: `sqrt(VHM) / sqrt(VHM) + sqrt(EVPV)`
+ - **credV2B**: `sqrt(VHM) / sqrt(VHM) + sqrt(EVPV / N)`
+
+The figures below present the credibility factor associated with different spreads and number observations
 
 ````julia
 # simulation grid
@@ -50,4 +58,16 @@ spread_list = [0.001, 0.01, 0.1, 0.5, 1, 2, 10, 100]
 | ![](assets/heatmap-credV1A.png) | ![](assets/heatmap-credV2A.png) |
 |:----------------------:|:----------------------:|
 | ![](assets/heatmap-credV1B.png) | ![](assets/heatmap-credV2B.png) |
+
+````julia
+# simulation grid
+sd_list = [0.1, 0.2, 0.5, 1.0, 2.0, 10.0]
+nobs = 100
+spread_list = [0.001, 0.01, 0.1, 0.5, 1, 2, 10, 100]
+
+````
+
+| ![](assets/heatmapB-credV1A.png) | ![](assets/heatmapB-credV2A.png) |
+|:----------------------:|:----------------------:|
+| ![](assets/heatmapB-credV1B.png) | ![](assets/heatmapB-credV2B.png) |
 
