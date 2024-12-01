@@ -49,6 +49,9 @@ The original inspiration comes from credibility theory, a foundational notion in
 Key concept is that the credibility associated with a set of observations is driven by the relative effect of 2 components:
  - **Variance of the Hypothetical Means (VHM)**: if large differences between candidates are expected, then a greater credibility will be assigned to that candidate.
  - **Expected Value of the Process Variance (EVPV)**: if the data generation process of a given candidate has a large volatility, a  smaller credibility will be assigned.
+
+The Buhlmann credibility states that the optimal linear posterior estimator of a group mean is: 
+ - `Z * X̄ + (1 - Z) * μ`, where `X̄` is the group mean and `μ` the population mean.
 =#
 
 #=
@@ -59,9 +62,10 @@ The gain corresponds to the reduction in this approximated loss by taking the pr
 The credibility-based takes a loss function agnostic approach, and view the gain as the total absolute change in the credibility-adjusted predicted value.
 Example, if a child has a mean residual of *2.0*, credibility of 0.5 and 100 observations, the resulting gain is: `2.0 * 0.5 * 100 = 100.0`, where `2.0 * 0.5` corresponds to the credibility adjusted prediction.
 
-VHM is estimated as the square of the mean of the spread between observed values and predictions: `mean(y - p)`.
-EVPV is estimated as the variance of the observations. This value can be derived from the aggregation of the first (`y - p`) and second (`(y - p)^2`) moment of the individual observations: 
- - `EVPV = E[(x - μ)^2] = E[X^2] - E[X]^2
+VHM is estimated as the square of the mean of the spread between observed values and predictions: 
+ - `VHM = E[X] = `mean(y - p)`
+EVPV is estimated as the variance of the observations. This value can be derived from the aggregation of the first and second moment of the individual observations: 
+ - `EVPV = E[(x - μ)^2] = E[X^2] - E[X]^2`
 =#
 
 #=
@@ -89,32 +93,6 @@ save(joinpath(@__DIR__, "assets", "dist-credV1A-3B.png"), f);#hide
 |:----------------------:|:----------------------:|
 | ![](assets/dist-credV1A-2A.png) | ![](assets/dist-credV1A-2B.png) |
 | ![](assets/dist-credV1A-3A.png) | ![](assets/dist-credV1A-3B.png) |
-=#
-
-#=
-### Credibility-based gains - credV2A
-This approach is a variation where the credibility is computed from std deviation rather than variance measures.
-=#
-
-loss = :credV2A#hide
-f = get_dist_figure(; loss, nobs=100, spread=1.0, sd=1.0)#hide
-save(joinpath(@__DIR__, "assets", "dist-credV2A-1A.png"), f);#hide
-f = get_dist_figure(; loss, nobs=10_000, spread=1.0, sd=1.0)#hide
-save(joinpath(@__DIR__, "assets", "dist-credV2A-1B.png"), f);#hide
-f = get_dist_figure(; loss, nobs=100, spread=1.0, sd=0.1)#hide
-save(joinpath(@__DIR__, "assets", "dist-credV2A-2A.png"), f);#hide
-f = get_dist_figure(; loss, nobs=10_000, spread=1.0, sd=0.1)#hide
-save(joinpath(@__DIR__, "assets", "dist-credV2A-2B.png"), f);#hide
-f = get_dist_figure(; loss, nobs=100, spread=0.1, sd=0.1)#hide
-save(joinpath(@__DIR__, "assets", "dist-credV2A-3A.png"), f);#hide
-f = get_dist_figure(; loss, nobs=10_000, spread=0.1, sd=0.1)#hide
-save(joinpath(@__DIR__, "assets", "dist-credV2A-3B.png"), f);#hide
-
-#=
-| ![](assets/dist-credV2A-1A.png) | ![](assets/dist-credV2A-1B.png) |
-|:----------------------:|:----------------------:|
-| ![](assets/dist-credV2A-2A.png) | ![](assets/dist-credV2A-2B.png) |
-| ![](assets/dist-credV2A-3A.png) | ![](assets/dist-credV2A-3B.png) |
 =#
 
 #=
