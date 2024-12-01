@@ -141,7 +141,7 @@ f = get_cred_figureB(; loss=:credV2B, nobs, sd_list, spread_list)#hide
 save(joinpath(@__DIR__, "assets", "heatmapB-credV2B.png"), f);#hide
 
 #=
-| ![](assets/heatmapB-credV1A.png) | ![](assets/heatmapB-credV1A.png) |
+| ![](assets/heatmapB-credV1A.png) | ![](assets/heatmapB-credV1B.png) |
 |:----------------------:|:----------------------:|
 | ![](assets/heatmapB-credV2A.png) | ![](assets/heatmapB-credV2B.png) |
 =#

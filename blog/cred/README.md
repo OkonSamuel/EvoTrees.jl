@@ -81,7 +81,7 @@ sd_list = [0.1, 0.2, 0.5, 1.0, 2.0, 10.0]
 spread_list = [0.001, 0.01, 0.1, 0.5, 1, 2, 10, 100]
 ````
 
-| ![](assets/heatmapB-credV1A.png) | ![](assets/heatmapB-credV1A.png) |
+| ![](assets/heatmapB-credV1A.png) | ![](assets/heatmapB-credV1B.png) |
 |:----------------------:|:----------------------:|
 | ![](assets/heatmapB-credV2A.png) | ![](assets/heatmapB-credV2B.png) |
 
