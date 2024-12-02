@@ -3,7 +3,7 @@
 include(joinpath(@__DIR__, "utils.jl")); #hide
 
 #=
-> The motivation for this experiment stems from potential shortfalls in approach used in gradient-boosted trees to assess the best split potential. 
+> The motivation for this experiment stems from potential benefits in alternatives to gradient-based gains to identify the best split candidate. 
 =#
 
 #=
@@ -14,7 +14,7 @@ Key observations:
 - **the gain is invariant to the volatility**: the top vs bottom figures differs only by the std dev of the observations. 
     The associated gain is identical, which is aligned with the gradient-based approach to gain: the gain matches the reduction in the MSE, which is identical regardless of the dispersion. It's strictly driven by their mean.
 - **the gain scales linearly with the number of observations**: the right vs left figures contrasts different number of observations (100 vs 10k), and show that gain is directly proportional.
-- **the gain scales quadratically with the size of the spread**: moving from a spread of 1.0 to 0.1 between the 2nd and 3rd row results in a drop by 100x of the gain: from 50.0 to 0.5.
+- **the gain scales quadratically with the spread**: moving from a spread of 1.0 to 0.1 between the 2nd and 3rd row results in a drop by 100x of the gain: from 50.0 to 0.5.
 =#
 
 loss = :mse#hide
@@ -44,11 +44,11 @@ save(joinpath(@__DIR__, "assets", "dist-mse-3B.png"), f);#hide
 
 #=
 The idea is for the *gain* to reflect varying uncertainty levels for observations associated to each of the tree-split candidates. 
-For tree-split candidates with an identical spread, the intuition is that split-candidates with a lower volatility, all other things being equal, should be preferred.
+For tree-split candidates with an identical spread, the intuition is that candidates with a lower volatility, all other things being equal, should be preferred.
 The original inspiration comes from credibility theory, a foundational notion in actuarial science with direct connexion mixed effect models and bayesian theory. 
 Key concept is that the credibility associated with a set of observations is driven by the relative effect of 2 components:
- - **Variance of the Hypothetical Means (VHM)**: if large differences between candidates are expected, then a greater credibility will be assigned to that candidate.
- - **Expected Value of the Process Variance (EVPV)**: if the data generation process of a given candidate has a large volatility, a  smaller credibility will be assigned.
+ - **Variance of the Hypothetical Means (VHM)**: if large differences between candidates means are expected, a greater credibility is assigned.
+ - **Expected Value of the Process Variance (EVPV)**: if the data generation process of a given candidate has a large volatility, a smaller credibility is assigned.
 
 The Buhlmann credibility states that the optimal linear posterior estimator of a group mean is: 
  - `Z * X̄ + (1 - Z) * μ`, where `X̄` is the group mean and `μ` the population mean.
@@ -63,9 +63,9 @@ The credibility-based takes a loss function agnostic approach, and view the gain
 Example, if a child has a mean residual of *2.0*, credibility of 0.5 and 100 observations, the resulting gain is: `2.0 * 0.5 * 100 = 100.0`, where `2.0 * 0.5` corresponds to the credibility adjusted prediction.
 
 VHM is estimated as the square of the mean of the spread between observed values and predictions: 
- - `VHM = E[X] = `mean(y - p)`
+ - `VHM = E[X] = mean(y - p)`
 EVPV is estimated as the variance of the observations. This value can be derived from the aggregation of the first and second moment of the individual observations: 
- - `EVPV = E[(x - μ)^2] = E[X^2] - E[X]^2`
+ - `EVPV = E[(x - μ)²] = E[X²] - E²[X]`
 =#
 
 #=
